@@ -323,6 +323,12 @@ Regla:
 
 - Objetivo: `Random`, `Chase`, `Patrol`, `Flee`.
 - Aprendizaje: Strategy y contextos de decision.
+- Entregable base:
+  - estrategias separadas del movimiento fisico
+  - contexto inmutable y acotado para decidir direccion
+  - `Random`, `Chase`, `Patrol` y `Flee`
+  - asignacion de estrategia por enemigo
+  - demo de consola con roles visibles por enemigo
 
 ### Fase 6. Estados completos
 

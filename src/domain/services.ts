@@ -28,6 +28,7 @@ export type EnemyDecisionContext = Readonly<{
   playerTile: TilePosition;
   homeTile: TilePosition;
   scatterTargetTile: TilePosition;
+  randomValue: number;
 }>;
 
 export type EnemyMovementStrategy = Readonly<{

@@ -25,12 +25,15 @@ describe("enemy movement", () => {
       id: "enemy-1",
       spawnTile: createTilePosition(5, 1),
       velocity: { unitsPerSecond: 2 },
+      strategyId: "random",
+      scatterTargetTile: createTilePosition(1, 5),
       initialDirection: "right"
     });
 
     const movedEnemy = advanceEnemy({
       board,
       enemy,
+      playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
       deltaMs: 500,
       nextRandom: createDeterministicRandom([0.2])
     });
@@ -43,12 +46,15 @@ describe("enemy movement", () => {
       id: "enemy-1",
       spawnTile: createTilePosition(3, 2),
       velocity: { unitsPerSecond: 2 },
+      strategyId: "random",
+      scatterTargetTile: createTilePosition(1, 5),
       initialDirection: "left"
     });
 
     const movedEnemy = advanceEnemy({
       board,
       enemy,
+      playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
       deltaMs: 500,
       nextRandom: createDeterministicRandom([0.9])
     });
@@ -63,7 +69,9 @@ describe("enemy collision", () => {
     const enemy = createEnemy({
       id: "enemy-1",
       spawnTile: createTilePosition(3, 3),
-      velocity: { unitsPerSecond: 2 }
+      velocity: { unitsPerSecond: 2 },
+      strategyId: "chase",
+      scatterTargetTile: createTilePosition(1, 5)
     });
 
     expect(
@@ -81,7 +89,9 @@ describe("enemy collision", () => {
       ...createEnemy({
         id: "enemy-1",
         spawnTile: createTilePosition(3, 2),
-        velocity: { unitsPerSecond: 2 }
+        velocity: { unitsPerSecond: 2 },
+        strategyId: "chase",
+        scatterTargetTile: createTilePosition(1, 5)
       }),
       position: tileToWorldPosition({ row: 3, column: 3 })
     };

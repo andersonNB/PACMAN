@@ -5,6 +5,7 @@ export * from "./application/use-cases.js";
 export * from "./domain/board.js";
 export * from "./domain/collectibles.js";
 export * from "./domain/enemy.js";
+export * from "./domain/enemy-strategies.js";
 export * from "./domain/entities.js";
 export * from "./domain/events.js";
 export * from "./domain/player.js";

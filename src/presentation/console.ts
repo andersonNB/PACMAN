@@ -50,7 +50,7 @@ export const renderBoardState = (params: {
       });
 
       if (enemy !== undefined) {
-        rowText += "G";
+        rowText += enemyGlyph(enemy);
         continue;
       }
 
@@ -84,3 +84,19 @@ export const createConsolePreview = (board: Board): string =>
     x: board.playerSpawn.column + 0.5,
     y: board.playerSpawn.row + 0.5
   });
+
+const enemyGlyph = (enemy: Enemy): string => {
+  if (enemy.behaviorMode === "frightened") {
+    return "F";
+  }
+
+  if (enemy.strategyId === "chase") {
+    return "H";
+  }
+
+  if (enemy.strategyId === "patrol") {
+    return "P";
+  }
+
+  return "R";
+};

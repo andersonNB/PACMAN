@@ -1,5 +1,6 @@
 import type { Board, Enemy } from "./entities.js";
 import { createBoardQuery } from "./board.js";
+import { enemyStrategies } from "./enemy-strategies.js";
 import { tileToWorldPosition, worldToTilePosition } from "./player.js";
 import type { Direction, TilePosition, Velocity, WorldPosition } from "./value-objects.js";
 
@@ -26,34 +27,50 @@ export const createEnemy = (params: {
   id: string;
   spawnTile: TilePosition;
   velocity: Velocity;
+  strategyId: string;
+  behaviorMode?: Enemy["behaviorMode"];
+  scatterTargetTile: TilePosition;
   initialDirection?: Direction;
 }): Enemy => ({
   id: params.id,
   position: tileToWorldPosition(params.spawnTile),
   currentDirection: params.initialDirection ?? "left",
   velocity: params.velocity,
-  behaviorMode: "scatter",
+  behaviorMode: params.behaviorMode ?? "scatter",
   navigationState: "outside",
-  strategyId: "random"
+  strategyId: params.strategyId,
+  homeTile: params.spawnTile,
+  scatterTargetTile: params.scatterTargetTile
 });
 
 export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[] =>
-  board.enemySpawns.map((spawnTile, index) =>
-    createEnemy({
+  board.enemySpawns.map((spawnTile, index) => {
+    const strategyId = index === 0 ? "chase" : index === 1 ? "patrol" : "random";
+    const behaviorMode = strategyId === "chase" ? "chase" : "scatter";
+    const scatterTargetTile =
+      index % 2 === 0
+        ? { row: 1, column: board.width - 2 }
+        : { row: board.height - 2, column: board.width - 2 };
+
+    return createEnemy({
       id: `enemy-${index + 1}`,
       spawnTile,
       velocity,
+      strategyId,
+      behaviorMode,
+      scatterTargetTile,
       initialDirection: index % 2 === 0 ? "left" : "right"
-    })
-  );
+    });
+  });
 
 export const advanceEnemy = (params: {
   board: Board;
   enemy: Enemy;
+  playerPosition: WorldPosition;
   deltaMs: number;
   nextRandom: RandomNumberSource;
 }): Enemy => {
-  const { board, deltaMs, nextRandom } = params;
+  const { board, deltaMs, nextRandom, playerPosition } = params;
   let enemy = params.enemy;
 
   if (deltaMs <= 0) {
@@ -66,7 +83,7 @@ export const advanceEnemy = (params: {
     const currentTile = worldToTilePosition(enemy.position);
 
     if (isAtTileCenter(enemy.position)) {
-      enemy = resolveEnemyDirectionAtCenter(enemy, currentTile, board, nextRandom);
+      enemy = resolveEnemyDirectionAtCenter(enemy, currentTile, worldToTilePosition(playerPosition), board, nextRandom);
     }
 
     const boardQuery = createBoardQuery(board);
@@ -118,6 +135,7 @@ export const detectEnemyCollision = (params: {
 const resolveEnemyDirectionAtCenter = (
   enemy: Enemy,
   currentTile: TilePosition,
+  playerTile: TilePosition,
   board: Board,
   nextRandom: RandomNumberSource
 ): Enemy => {
@@ -135,14 +153,23 @@ const resolveEnemyDirectionAtCenter = (
   const candidateDirections =
     nonReverseDirections.length > 0 ? nonReverseDirections : availableDirections;
 
-  const directionIndex = Math.min(
-    candidateDirections.length - 1,
-    Math.floor(nextRandom() * candidateDirections.length)
-  );
+  const randomValue = nextRandom();
+  const strategy = enemy.behaviorMode === "frightened" ? enemyStrategies.flee : enemyStrategies[enemy.strategyId];
+  const chosenDirection =
+    strategy?.chooseDirection({
+      selfId: enemy.id,
+      currentTile,
+      currentDirection: enemy.currentDirection,
+      availableDirections: candidateDirections,
+      playerTile,
+      homeTile: enemy.homeTile,
+      scatterTargetTile: enemy.scatterTargetTile,
+      randomValue
+    }) ?? enemy.currentDirection;
 
   return {
     ...enemy,
-    currentDirection: candidateDirections[directionIndex] ?? enemy.currentDirection
+    currentDirection: candidateDirections.includes(chosenDirection) ? chosenDirection : enemy.currentDirection
   };
 };
 

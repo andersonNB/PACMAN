@@ -42,6 +42,8 @@ export type Enemy = Readonly<{
   behaviorMode: EnemyBehaviorMode;
   navigationState: EnemyNavigationState;
   strategyId: string;
+  homeTile: TilePosition;
+  scatterTargetTile: TilePosition;
 }>;
 
 export type Board = Readonly<{

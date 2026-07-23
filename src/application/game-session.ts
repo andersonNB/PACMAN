@@ -68,6 +68,7 @@ export const advanceGameSession = (
     advanceEnemy({
       board: state.board,
       enemy,
+      playerPosition: player.position,
       deltaMs,
       nextRandom
     })
