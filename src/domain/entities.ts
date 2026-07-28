@@ -54,6 +54,18 @@ export type Board = Readonly<{
   enemySpawns: readonly TilePosition[];
 }>;
 
+export type SessionConfigState = Readonly<{
+  initialLives: number;
+  playerSpeedUnitsPerSecond: number;
+  enemySpeedUnitsPerSecond: number;
+  scoring: Readonly<{
+    dotPoints: number;
+    powerPelletPoints: number;
+  }>;
+  respawnDelayMs: number;
+  levelCompletedDelayMs: number;
+}>;
+
 export type GameState = Readonly<{
   board: Board;
   player: Player;
@@ -63,4 +75,6 @@ export type GameState = Readonly<{
   lives: LivesValue;
   status: GameStatus;
   tick: number;
+  phaseTimerMs: number | null;
+  sessionConfig: SessionConfigState;
 }>;

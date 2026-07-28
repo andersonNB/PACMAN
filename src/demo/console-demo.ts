@@ -3,7 +3,10 @@ import { createDeterministicRandom } from "../domain/enemy.js";
 import {
   advanceGameSession,
   createGameSession,
+  pauseGameSession,
   requestDirectionForSession,
+  resumeGameSession,
+  restartGameSession,
   startGameSession
 } from "../application/game-session.js";
 import { renderBoardState } from "../presentation/console.js";
@@ -29,7 +32,9 @@ let state = startGameSession(
     scoring: {
       dotPoints: 10,
       powerPelletPoints: 50
-    }
+    },
+    respawnDelayMs: 1000,
+    levelCompletedDelayMs: 1000
   })
 );
 
@@ -54,6 +59,49 @@ for (const direction of plannedDirections) {
   console.log("");
 
   if (state.status !== "running") {
+    state = advanceGameSession(state, 1000, nextRandom);
+
+    console.log(
+      renderBoardState({
+        board: state.board,
+        playerPosition: state.player.position,
+        collectibles: state.collectibles,
+        enemies: state.enemies,
+        status: state.status,
+        score: state.score.value,
+        lives: state.lives.value
+      })
+    );
+    console.log("");
+
     break;
   }
 }
+
+state = pauseGameSession(state);
+console.log(
+  renderBoardState({
+    board: state.board,
+    playerPosition: state.player.position,
+    collectibles: state.collectibles,
+    enemies: state.enemies,
+    status: state.status,
+    score: state.score.value,
+    lives: state.lives.value
+  })
+);
+console.log("");
+
+state = resumeGameSession(state);
+state = restartGameSession(state);
+console.log(
+  renderBoardState({
+    board: state.board,
+    playerPosition: state.player.position,
+    collectibles: state.collectibles,
+    enemies: state.enemies,
+    status: state.status,
+    score: state.score.value,
+    lives: state.lives.value
+  })
+);

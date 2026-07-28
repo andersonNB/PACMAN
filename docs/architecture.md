@@ -334,6 +334,12 @@ Regla:
 
 - Objetivo: pausa, muerte, restart, game over, victory y estados enemigos.
 - Aprendizaje: maquinas de estado y transiciones invalidas.
+- Entregable base:
+  - `pause`, `resume` y `restart` explicitos
+  - resolucion temporal de `playerDying`
+  - paso de `levelCompleted` a `victory`
+  - rechazo practico de avances invalidos en `idle`, `paused`, `gameOver` y `victory`
+  - demo de consola mostrando el ciclo de vida de la partida
 
 ### Fase 7. Adaptador visual
 

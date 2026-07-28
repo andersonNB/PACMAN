@@ -6,6 +6,8 @@ export type GameConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
   frightenedDurationMs: number;
+  respawnDelayMs: number;
+  levelCompletedDelayMs: number;
   scoring: Readonly<{
     dot: number;
     powerPellet: number;
