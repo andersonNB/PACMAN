@@ -8,7 +8,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "demo:console": "npm run build && node dist/demo/console-demo.js"
+    "demo:console": "npm run build && node dist/demo/console-demo.js",
+    "demo:browser": "npm run build && node scripts/serve-demo.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

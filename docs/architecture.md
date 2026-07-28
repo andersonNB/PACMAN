@@ -345,6 +345,12 @@ Regla:
 
 - Objetivo: input, renderer y loop visual conectados por puertos.
 - Aprendizaje: ports and adapters en frontend real.
+- Entregable base:
+  - renderer visual desacoplado del dominio
+  - loop visual con `requestAnimationFrame` y fixed timestep en el adaptador
+  - captura de teclado traducida a comandos
+  - snapshot interpolation solo en presentacion
+  - demo jugable en navegador para comparar con el comportamiento clasico
 
 ### Fase 8. Calidad y escalabilidad
 

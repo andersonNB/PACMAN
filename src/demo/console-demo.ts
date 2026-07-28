@@ -1,4 +1,4 @@
-import { createBoard, type LevelDefinition } from "../domain/board.js";
+import { createBoard } from "../domain/board.js";
 import { createDeterministicRandom } from "../domain/enemy.js";
 import {
   advanceGameSession,
@@ -10,19 +10,7 @@ import {
   startGameSession
 } from "../application/game-session.js";
 import { renderBoardState } from "../presentation/console.js";
-
-const DEMO_LEVEL: LevelDefinition = {
-  id: "console-demo",
-  rows: [
-    "#########",
-    "#P......#",
-    "#.###.#.#",
-    "#...T...#",
-    "#.###.#.#",
-    "#E.....E#",
-    "#########"
-  ]
-};
+import { DEMO_LEVEL } from "./demo-level.js";
 
 let state = startGameSession(
   createGameSession(createBoard(DEMO_LEVEL), {

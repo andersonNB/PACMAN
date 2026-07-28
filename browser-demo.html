@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PACMAN Architecture Demo</title>
+    <style>
+      :root {
+        --bg: #07111f;
+        --bg-accent: #0d223d;
+        --panel: rgba(6, 16, 30, 0.82);
+        --line: rgba(136, 196, 255, 0.25);
+        --text: #f4f8ff;
+        --muted: #96afcc;
+        --arcade-blue: #3b86ff;
+        --pellet: #ffd86b;
+        --player: #ffd400;
+        --ghost-chase: #ff5e7e;
+        --ghost-patrol: #50e4ff;
+        --ghost-random: #ff9b3d;
+        --ghost-frightened: #2f63ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top, rgba(69, 132, 255, 0.2), transparent 34%),
+          linear-gradient(180deg, #06101c 0%, #03070d 100%);
+      }
+
+      #app {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./dist/demo/browser-demo.js"></script>
+  </body>
+  </html>
