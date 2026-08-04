@@ -356,6 +356,12 @@ Regla:
 
 - Objetivo: integracion, persistencia, documentacion final y preparacion de entrevista.
 - Aprendizaje: tradeoffs, extensibilidad y defensa arquitectonica.
+- Entregable base:
+  - persistencia local de score mediante adapter de infraestructura
+  - overlay de debug activable sin contaminar el dominio
+  - ranking visible en el adaptador visual
+  - tests adicionales de infraestructura
+  - notas finales de escalabilidad y preparacion de entrevista
 
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
@@ -383,3 +389,23 @@ Regla:
   - `Repository` para score persistido
   - `Command` para entradas de usuario
   - FSM explicita para estados validos
+
+## 17. Cierre de calidad y escalabilidad
+
+### Persistencia
+
+- El ranking de score queda resuelto mediante el puerto `ScoreRepository`.
+- La fase 8 usa un adapter para navegador basado en `localStorage` y una variante en memoria para tests.
+- La aplicacion y el dominio no conocen detalles de serializacion ni APIs del navegador.
+
+### Observabilidad
+
+- El adaptador visual expone un overlay de debug activable para inspeccionar `tick`, posicion, direccion y estado.
+- La informacion de diagnostico se construye desde snapshots ya serializables.
+- Esto permite defender que la observabilidad vive fuera de las reglas nucleares del juego.
+
+### Escalabilidad futura
+
+- Se puede reemplazar `localStorage` por backend, IndexedDB o sincronizacion remota sin tocar el dominio.
+- El renderer actual de canvas puede migrar a React Canvas, PixiJS o Phaser manteniendo el mismo contrato de snapshot.
+- El loop podria moverse a Web Worker o replay runner determinista sin reescribir reglas centrales.

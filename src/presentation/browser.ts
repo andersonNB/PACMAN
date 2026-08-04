@@ -1,14 +1,22 @@
-import { advanceGameSession, createGameSession, pauseGameSession, requestDirectionForSession, restartGameSession, resumeGameSession, startGameSession, toGameSnapshot, type SessionConfig } from "../application/game-session.js";
-import { createBoard } from "../domain/board.js";
+import {
+  advanceGameSession,
+  createGameSession,
+  pauseGameSession,
+  requestDirectionForSession,
+  restartGameSession,
+  resumeGameSession,
+  startGameSession,
+  toGameSnapshot,
+  type SessionConfig
+} from "../application/game-session.js";
+import type { ScoreEntry, ScoreRepository } from "../application/ports.js";
+import { createBoard, type LevelDefinition } from "../domain/board.js";
 import { createDeterministicRandom } from "../domain/enemy.js";
 import type { GameState } from "../domain/entities.js";
-import { worldToTilePosition } from "../domain/player.js";
 import type { Direction } from "../domain/value-objects.js";
-import type { LevelDefinition } from "../domain/board.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
-const HUD_HEIGHT = 110;
 
 const COLORS = {
   background: "#07111f",
@@ -24,13 +32,16 @@ const COLORS = {
   chase: "#ff5e7e",
   patrol: "#50e4ff",
   random: "#ff9b3d",
-  frightened: "#2f63ff"
+  frightened: "#2f63ff",
+  debug: "rgba(150, 175, 204, 0.22)"
 } as const;
 
 export type BrowserDemoConfig = Readonly<{
   root: HTMLElement;
   level: LevelDefinition;
   sessionConfig: SessionConfig;
+  scoreRepository?: ScoreRepository;
+  playerName?: string;
 }>;
 
 export const startBrowserDemo = (config: BrowserDemoConfig): void => {
@@ -40,6 +51,8 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   let accumulator = 0;
   let lastFrameTime = performance.now();
   let animationFrameId = 0;
+  let scoreWasPersisted = false;
+  let debugEnabled = false;
 
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -58,16 +71,16 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   canvas.style.border = "1px solid rgba(136, 196, 255, 0.22)";
 
   const frame = createFrameElement(canvas, config.root);
-  const statusValue = frame.querySelector("[data-role='status-value']");
-  const scoreValue = frame.querySelector("[data-role='score-value']");
-  const livesValue = frame.querySelector("[data-role='lives-value']");
-  const hintValue = frame.querySelector("[data-role='hint-value']");
-
-  if (!(statusValue instanceof HTMLElement) || !(scoreValue instanceof HTMLElement) || !(livesValue instanceof HTMLElement) || !(hintValue instanceof HTMLElement)) {
-    throw new Error("Browser demo frame is missing required HUD elements.");
-  }
+  const statusValue = getElement(frame, "status-value");
+  const scoreValue = getElement(frame, "score-value");
+  const livesValue = getElement(frame, "lives-value");
+  const hintValue = getElement(frame, "hint-value");
+  const rankingValue = getElement(frame, "ranking-value");
+  const debugValue = getElement(frame, "debug-value");
 
   const nextRandom = createDeterministicRandom([0.17, 0.82, 0.39, 0.63, 0.28, 0.91]);
+
+  void refreshRanking();
 
   const onKeyDown = (event: KeyboardEvent): void => {
     const direction = mapKeyToDirection(event.key);
@@ -87,6 +100,14 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     if (event.key.toLowerCase() === "r") {
       event.preventDefault();
       state = restartGameSession(state);
+      previousState = state;
+      scoreWasPersisted = false;
+      return;
+    }
+
+    if (event.key === "Tab") {
+      event.preventDefault();
+      debugEnabled = !debugEnabled;
       return;
     }
 
@@ -100,6 +121,8 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
       if (state.status === "gameOver" || state.status === "victory") {
         state = startGameSession(restartGameSession(state));
+        previousState = state;
+        scoreWasPersisted = false;
       }
     }
   };
@@ -113,13 +136,19 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     livesValue.textContent = String(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
       ? "Press Enter to start"
-      : "Arrows/WASD to move • Space pause • R restart";
+      : "Arrows/WASD move • Space pause • R restart • Tab debug";
+    debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawBoard(context, board);
     drawCollectibles(context, snapshot.collectibles);
     drawEnemies(context, previousSnapshot, snapshot, alpha);
     drawPlayer(context, previousSnapshot, snapshot, alpha);
+
+    if (debugEnabled) {
+      drawDebugGrid(context, board.width, board.height);
+    }
+
     drawStatusOverlay(context, snapshot.status, canvas.width, canvas.height);
   };
 
@@ -132,6 +161,13 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
       previousState = state;
       state = advanceGameSession(state, FIXED_TICK_MS, nextRandom);
       accumulator -= FIXED_TICK_MS;
+    }
+
+    const status = state.status;
+
+    if (!scoreWasPersisted && (status === "gameOver" || status === "victory")) {
+      scoreWasPersisted = true;
+      void persistScore();
     }
 
     render(accumulator / FIXED_TICK_MS);
@@ -150,6 +186,40 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   function createInitialState(): GameState {
     return createGameSession(board, config.sessionConfig);
   }
+
+  async function persistScore(): Promise<void> {
+    if (config.scoreRepository === undefined) {
+      return;
+    }
+
+    await config.scoreRepository.save({
+      playerName: config.playerName ?? "Player",
+      score: state.score.value,
+      achievedAtIso: new Date().toISOString()
+    });
+
+    await refreshRanking();
+  }
+
+  async function refreshRanking(): Promise<void> {
+    if (config.scoreRepository === undefined) {
+      rankingValue.innerHTML = "<div>No score repository configured.</div>";
+      return;
+    }
+
+    const entries = await config.scoreRepository.listTop(5);
+    rankingValue.innerHTML = renderRanking(entries);
+  }
+};
+
+const getElement = (root: HTMLElement, role: string): HTMLElement => {
+  const element = root.querySelector(`[data-role='${role}']`);
+
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`Browser demo frame is missing required element '${role}'.`);
+  }
+
+  return element;
 };
 
 const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLElement => {
@@ -162,7 +232,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   shell.style.padding = "40px 20px";
 
   const panel = document.createElement("section");
-  panel.style.width = "min(960px, 100%)";
+  panel.style.width = "min(1180px, 100%)";
   panel.style.display = "grid";
   panel.style.gap = "18px";
   panel.style.padding = "26px";
@@ -176,7 +246,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 7 Visual Adapter</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 8 Quality & Scalability</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -196,6 +266,19 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
     </div>
   `;
 
+  const content = document.createElement("div");
+  content.style.display = "grid";
+  content.style.gridTemplateColumns = "minmax(0, 1.7fr) minmax(280px, 0.9fr)";
+  content.style.gap = "18px";
+
+  const leftColumn = document.createElement("div");
+  leftColumn.style.display = "grid";
+  leftColumn.style.gap = "18px";
+
+  const rightColumn = document.createElement("div");
+  rightColumn.style.display = "grid";
+  rightColumn.style.gap = "18px";
+
   const hint = document.createElement("div");
   hint.setAttribute("data-role", "hint-value");
   hint.style.padding = "12px 14px";
@@ -205,11 +288,86 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   hint.style.border = "1px solid rgba(136,196,255,0.18)";
   hint.textContent = "Press Enter to start";
 
-  panel.append(title, canvas, hint);
+  const rankingCard = createSideCard("High Scores", "Top scores persisted by infrastructure adapters.");
+  const rankingValue = document.createElement("div");
+  rankingValue.setAttribute("data-role", "ranking-value");
+  rankingValue.style.display = "grid";
+  rankingValue.style.gap = "8px";
+  rankingValue.style.color = COLORS.text;
+  rankingValue.innerHTML = "<div>Loading...</div>";
+  rankingCard.append(rankingValue);
+
+  const debugCard = createSideCard("Debug Overlay", "Snapshot-derived diagnostics outside the game domain.");
+  const debugValue = document.createElement("div");
+  debugValue.setAttribute("data-role", "debug-value");
+  debugValue.style.fontFamily = '"Consolas", "Courier New", monospace';
+  debugValue.style.fontSize = "13px";
+  debugValue.style.lineHeight = "1.6";
+  debugValue.style.color = COLORS.muted;
+  debugCard.append(debugValue);
+
+  leftColumn.append(canvas, hint);
+  rightColumn.append(rankingCard, debugCard);
+  content.append(leftColumn, rightColumn);
+  panel.append(title, content);
   shell.append(panel);
   root.append(shell);
 
   return panel;
+};
+
+const createSideCard = (title: string, description: string): HTMLElement => {
+  const card = document.createElement("section");
+  card.style.padding = "16px";
+  card.style.borderRadius = "18px";
+  card.style.background = "rgba(18,35,62,0.7)";
+  card.style.border = "1px solid rgba(136,196,255,0.18)";
+  card.style.display = "grid";
+  card.style.gap = "10px";
+
+  const heading = document.createElement("div");
+  heading.innerHTML = `
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#96afcc;">${escapeHtml(title)}</div>
+    <div style="margin-top:6px;color:#c9dbf2;font-size:13px;">${escapeHtml(description)}</div>
+  `;
+
+  card.append(heading);
+  return card;
+};
+
+const renderRanking = (entries: readonly ScoreEntry[]): string => {
+  if (entries.length === 0) {
+    return "<div>No scores yet. Finish a run to persist the first entry.</div>";
+  }
+
+  return entries
+    .map((entry, index) =>
+      `<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(8,17,30,0.7);border:1px solid rgba(136,196,255,0.1);">
+        <span>${index + 1}. ${escapeHtml(entry.playerName)}</span>
+        <strong>${entry.score}</strong>
+      </div>`
+    )
+    .join("");
+};
+
+const createDebugText = (
+  snapshot: ReturnType<typeof toGameSnapshot>,
+  debugEnabled: boolean
+): string => {
+  if (!debugEnabled) {
+    return "Press Tab to toggle simulation diagnostics.";
+  }
+
+  return [
+    `tick: ${snapshot.tick}`,
+    `status: ${snapshot.status}`,
+    `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
+    `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
+    `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
+    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.behaviorMode}`).join(" | ")}`
+  ]
+    .map((line) => `<div>${escapeHtml(line)}</div>`)
+    .join("");
 };
 
 const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof createBoard>): void => {
@@ -335,6 +493,30 @@ const drawGhost = (context: CanvasRenderingContext2D, centerX: number, centerY: 
   context.fill();
 };
 
+const drawDebugGrid = (context: CanvasRenderingContext2D, columns: number, rows: number): void => {
+  context.save();
+  context.strokeStyle = COLORS.debug;
+  context.lineWidth = 1;
+
+  for (let column = 0; column <= columns; column += 1) {
+    const x = column * TILE_SIZE;
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x, rows * TILE_SIZE);
+    context.stroke();
+  }
+
+  for (let row = 0; row <= rows; row += 1) {
+    const y = row * TILE_SIZE;
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(columns * TILE_SIZE, y);
+    context.stroke();
+  }
+
+  context.restore();
+};
+
 const drawStatusOverlay = (
   context: CanvasRenderingContext2D,
   status: ReturnType<typeof toGameSnapshot>["status"],
@@ -447,3 +629,11 @@ const humanizeStatus = (status: ReturnType<typeof toGameSnapshot>["status"]): st
 
   return "Victory";
 };
+
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");

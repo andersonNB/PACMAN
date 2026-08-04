@@ -1,4 +1,5 @@
 import { startBrowserDemo } from "../presentation/browser.js";
+import { createBrowserStorageScoreRepository } from "../infrastructure/score-repositories.js";
 import { DEMO_LEVEL } from "./demo-level.js";
 
 const root = document.getElementById("app");
@@ -10,6 +11,8 @@ if (root === null) {
 startBrowserDemo({
   root,
   level: DEMO_LEVEL,
+  playerName: "andersonNB",
+  scoreRepository: createBrowserStorageScoreRepository(window.localStorage),
   sessionConfig: {
     playerSpeedUnitsPerSecond: 3.2,
     enemySpeedUnitsPerSecond: 2.4,

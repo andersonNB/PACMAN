@@ -1,10 +1,16 @@
 # Infraestructura
 
-Aqui iran adaptadores concretos como:
+Aqui viven adaptadores concretos que conectan puertos de aplicacion con tecnologias reales.
+
+Implementaciones actuales:
+
+- `createInMemoryScoreRepository`
+- `createBrowserStorageScoreRepository`
+
+Adaptadores previstos para siguientes iteraciones:
 
 - game loop basado en `requestAnimationFrame`
 - loader de niveles
-- persistencia de score
 - reloj real
 - generador aleatorio real
 - event bus concreto
