@@ -5,6 +5,9 @@ import {
   advanceEnemy,
   createEnemies,
   detectEnemyCollision,
+  getDefaultEnemyBehaviorMode,
+  resetEnemyToHome,
+  setEnemyBehaviorMode,
   type RandomNumberSource
 } from "../domain/enemy.js";
 import { createPlayer, advancePlayer, requestPlayerDirection } from "../domain/player.js";
@@ -13,8 +16,11 @@ import type { Direction } from "../domain/value-objects.js";
 export type SessionConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  frightenedDurationMs: number;
   initialLives: number;
-  scoring: CollectibleConfig;
+  scoring: CollectibleConfig & Readonly<{
+    enemyPoints: number;
+  }>;
   respawnDelayMs: number;
   levelCompletedDelayMs: number;
 }>;
@@ -80,7 +86,16 @@ export const advanceGameSession = (
     deltaMs
   });
 
-  const enemies = state.enemies.map((enemy) =>
+  const collectionResult = collectAtPlayerTile({
+    collectibles: state.collectibles,
+    playerPosition: player.position
+  });
+
+  const enemiesWithCurrentMode = collectionResult.frightenedTriggered
+    ? state.enemies.map((enemy) => setEnemyBehaviorMode(enemy, "frightened"))
+    : state.enemies;
+
+  const enemies = enemiesWithCurrentMode.map((enemy) =>
     advanceEnemy({
       board: state.board,
       enemy,
@@ -90,7 +105,7 @@ export const advanceGameSession = (
     })
   );
 
-  const hasEnemyCollision = enemies.some((enemy) =>
+  const collidedEnemies = enemies.filter((enemy) =>
     detectEnemyCollision({
       playerPosition: player.position,
       previousPlayerPosition,
@@ -99,7 +114,9 @@ export const advanceGameSession = (
     })
   );
 
-  if (hasEnemyCollision) {
+  const dangerousCollisions = collidedEnemies.filter((enemy) => enemy.behaviorMode !== "frightened");
+
+  if (dangerousCollisions.length > 0) {
     const remainingLives = state.lives.value - 1;
 
     return {
@@ -112,24 +129,38 @@ export const advanceGameSession = (
       lives: { value: Math.max(remainingLives, 0) },
       status: remainingLives <= 0 ? "gameOver" : "playerDying",
       phaseTimerMs: remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
+      frightenedTimerMs: null,
       tick: state.tick + 1
     };
   }
 
-  const collectionResult = collectAtPlayerTile({
-    collectibles: state.collectibles,
-    playerPosition: player.position
-  });
+  const frightenedCollisionIds = new Set(
+    collidedEnemies
+      .filter((enemy) => enemy.behaviorMode === "frightened")
+      .map((enemy) => enemy.id)
+  );
+  const frightenedCollisionCount = frightenedCollisionIds.size;
+  const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
+  const enemiesAfterCollision = enemies.map((enemy) =>
+    frightenedCollisionIds.has(enemy.id) ? resetEnemyToHome(enemy) : enemy
+  );
+  const normalizedEnemies = normalizeEnemyModes(enemiesAfterCollision, frightenedTimerMs);
 
   return {
     ...state,
     player,
-    enemies,
+    enemies: normalizedEnemies,
     collectibles: collectionResult.collectibles,
-    score: { value: state.score.value + collectionResult.scoreDelta },
+    score: {
+      value:
+        state.score.value
+        + collectionResult.scoreDelta
+        + frightenedCollisionCount * state.sessionConfig.scoring.enemyPoints
+    },
     status: collectionResult.nextStatus === null ? state.status : collectionResult.nextStatus,
     phaseTimerMs:
       collectionResult.nextStatus === "levelCompleted" ? state.sessionConfig.levelCompletedDelayMs : state.phaseTimerMs,
+    frightenedTimerMs,
     tick: state.tick + 1
   };
 };
@@ -139,6 +170,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   tick: state.tick,
   score: state.score.value,
   lives: state.lives.value,
+  frightenedTimerMs: state.frightenedTimerMs,
   player: {
     position: state.player.position,
     currentDirection: state.player.currentDirection,
@@ -181,6 +213,7 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     }),
     status: "running",
     phaseTimerMs: null,
+    frightenedTimerMs: null,
     tick: state.tick + 1
   };
 };
@@ -200,6 +233,7 @@ const advanceLevelCompletedState = (state: GameState, deltaMs: number): GameStat
     ...state,
     status: "victory",
     phaseTimerMs: null,
+    frightenedTimerMs: null,
     tick: state.tick + 1
   };
 };
@@ -222,6 +256,7 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   status: "idle",
   tick: 0,
   phaseTimerMs: null,
+  frightenedTimerMs: null,
   sessionConfig
 });
 
@@ -229,10 +264,39 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   initialLives: config.initialLives,
   playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
   enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
+  frightenedDurationMs: config.frightenedDurationMs,
   scoring: {
     dotPoints: config.scoring.dotPoints,
-    powerPelletPoints: config.scoring.powerPelletPoints
+    powerPelletPoints: config.scoring.powerPelletPoints,
+    enemyPoints: config.scoring.enemyPoints
   },
   respawnDelayMs: config.respawnDelayMs,
   levelCompletedDelayMs: config.levelCompletedDelayMs
 });
+
+const resolveFrightenedTimer = (
+  state: GameState,
+  deltaMs: number,
+  frightenedTriggered: boolean
+): number | null => {
+  if (frightenedTriggered) {
+    return state.sessionConfig.frightenedDurationMs;
+  }
+
+  if (state.frightenedTimerMs === null) {
+    return null;
+  }
+
+  const nextTimer = Math.max(state.frightenedTimerMs - deltaMs, 0);
+  return nextTimer > 0 ? nextTimer : null;
+};
+
+const normalizeEnemyModes = (
+  enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
+  frightenedTimerMs: number | null
+): readonly ReturnType<typeof setEnemyBehaviorMode>[] =>
+  enemies.map((enemy) =>
+    frightenedTimerMs === null && enemy.behaviorMode === "frightened"
+      ? setEnemyBehaviorMode(enemy, getDefaultEnemyBehaviorMode(enemy))
+      : enemy
+  );

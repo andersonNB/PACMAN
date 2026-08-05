@@ -58,9 +58,11 @@ export type SessionConfigState = Readonly<{
   initialLives: number;
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  frightenedDurationMs: number;
   scoring: Readonly<{
     dotPoints: number;
     powerPelletPoints: number;
+    enemyPoints: number;
   }>;
   respawnDelayMs: number;
   levelCompletedDelayMs: number;
@@ -76,5 +78,6 @@ export type GameState = Readonly<{
   status: GameStatus;
   tick: number;
   phaseTimerMs: number | null;
+  frightenedTimerMs: number | null;
   sessionConfig: SessionConfigState;
 }>;

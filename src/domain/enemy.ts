@@ -43,10 +43,12 @@ export const createEnemy = (params: {
   scatterTargetTile: params.scatterTargetTile
 });
 
+export const getDefaultEnemyBehaviorMode = (enemy: Pick<Enemy, "strategyId">): Enemy["behaviorMode"] =>
+  enemy.strategyId === "chase" ? "chase" : "scatter";
+
 export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[] =>
   board.enemySpawns.map((spawnTile, index) => {
     const strategyId = index === 0 ? "chase" : index === 1 ? "patrol" : "random";
-    const behaviorMode = strategyId === "chase" ? "chase" : "scatter";
     const scatterTargetTile =
       index % 2 === 0
         ? { row: 1, column: board.width - 2 }
@@ -57,11 +59,24 @@ export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[
       spawnTile,
       velocity,
       strategyId,
-      behaviorMode,
+      behaviorMode: getDefaultEnemyBehaviorMode({ strategyId }),
       scatterTargetTile,
       initialDirection: index % 2 === 0 ? "left" : "right"
     });
   });
+
+export const setEnemyBehaviorMode = (enemy: Enemy, behaviorMode: Enemy["behaviorMode"]): Enemy => ({
+  ...enemy,
+  behaviorMode
+});
+
+export const resetEnemyToHome = (enemy: Enemy): Enemy => ({
+  ...enemy,
+  position: tileToWorldPosition(enemy.homeTile),
+  currentDirection: "left",
+  behaviorMode: getDefaultEnemyBehaviorMode(enemy),
+  navigationState: "outside"
+});
 
 export const advanceEnemy = (params: {
   board: Board;

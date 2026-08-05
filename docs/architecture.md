@@ -363,6 +363,17 @@ Regla:
   - tests adicionales de infraestructura
   - notas finales de escalabilidad y preparacion de entrevista
 
+### Fase 9. Fidelidad arcade
+
+- Objetivo: acercar el comportamiento del clon al Pac-Man clasico con `power pellets` funcionales.
+- Aprendizaje: temporizadores superpuestos, colisiones contextuales y reglas de vulnerabilidad.
+- Entregable base:
+  - `frightened mode` determinista al recolectar `power pellet`
+  - expiracion temporal desacoplada del render
+  - colision no letal contra enemigos frightened con respawn simplificado
+  - puntaje adicional por enemigo vulnerable
+  - nivel demo con pellets visibles para validar parecido al arcade
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -409,3 +420,10 @@ Regla:
 - Se puede reemplazar `localStorage` por backend, IndexedDB o sincronizacion remota sin tocar el dominio.
 - El renderer actual de canvas puede migrar a React Canvas, PixiJS o Phaser manteniendo el mismo contrato de snapshot.
 - El loop podria moverse a Web Worker o replay runner determinista sin reescribir reglas centrales.
+
+## 18. Fase 9 implementada
+
+- El estado `frightened` ahora depende de un timer explicito en `GameState`, no del adaptador visual.
+- Los `power pellets` activan vulnerabilidad global de enemigos por una duracion determinista.
+- La colision contra un enemigo frightened deja de costar vida y concede score extra con respawn simplificado al home tile.
+- El demo del navegador ya contiene pellets visibles para comparar mejor el comportamiento con el referente arcade.

@@ -8,7 +8,7 @@ const LEVEL: LevelDefinition = {
   id: "phase-3-collectibles",
   rows: [
     "#######",
-    "#P....#",
+    "#Po...#",
     "#.###.#",
     "#...T.#",
     "#.###.#",
@@ -33,12 +33,13 @@ describe("collectibles", () => {
   it("collects a dot once and increases score", () => {
     const result = collectAtPlayerTile({
       collectibles,
-      playerPosition: tileToWorldPosition({ row: 1, column: 2 })
+      playerPosition: tileToWorldPosition({ row: 1, column: 3 })
     });
 
     expect(result.collected).toHaveLength(1);
     expect(result.scoreDelta).toBe(10);
-    expect(result.collectibles.find((collectible) => collectible.tile.row === 1 && collectible.tile.column === 2)?.active).toBe(
+    expect(result.frightenedTriggered).toBe(false);
+    expect(result.collectibles.find((collectible) => collectible.tile.row === 1 && collectible.tile.column === 3)?.active).toBe(
       false
     );
   });
@@ -46,29 +47,40 @@ describe("collectibles", () => {
   it("does not recollect an inactive dot", () => {
     const firstCollection = collectAtPlayerTile({
       collectibles,
-      playerPosition: tileToWorldPosition({ row: 1, column: 2 })
+      playerPosition: tileToWorldPosition({ row: 1, column: 3 })
     });
 
     const secondCollection = collectAtPlayerTile({
       collectibles: firstCollection.collectibles,
-      playerPosition: tileToWorldPosition({ row: 1, column: 2 })
+      playerPosition: tileToWorldPosition({ row: 1, column: 3 })
     });
 
     expect(secondCollection.collected).toHaveLength(0);
     expect(secondCollection.scoreDelta).toBe(0);
+    expect(secondCollection.frightenedTriggered).toBe(false);
   });
 
   it("marks the level as completed when no active collectibles remain", () => {
     const inactiveCollectibles = collectibles.map((collectible) => ({
       ...collectible,
-      active: collectible.tile.row === 1 && collectible.tile.column === 2
+      active: collectible.tile.row === 1 && collectible.tile.column === 3
     }));
 
     const result = collectAtPlayerTile({
       collectibles: inactiveCollectibles,
-      playerPosition: tileToWorldPosition({ row: 1, column: 2 })
+      playerPosition: tileToWorldPosition({ row: 1, column: 3 })
     });
 
     expect(result.nextStatus).toBe("levelCompleted");
+  });
+
+  it("flags frightened mode when collecting a power pellet", () => {
+    const result = collectAtPlayerTile({
+      collectibles,
+      playerPosition: tileToWorldPosition({ row: 1, column: 2 })
+    });
+
+    expect(result.scoreDelta).toBe(50);
+    expect(result.frightenedTriggered).toBe(true);
   });
 });

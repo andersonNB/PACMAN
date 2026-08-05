@@ -11,6 +11,7 @@ export type CollectibleCollectionResult = Readonly<{
   collectibles: readonly Collectible[];
   collected: readonly Collectible[];
   scoreDelta: number;
+  frightenedTriggered: boolean;
   nextStatus: GameStatus | null;
 }>;
 
@@ -68,6 +69,7 @@ export const collectAtPlayerTile = (params: {
     collectibles,
     collected,
     scoreDelta,
+    frightenedTriggered: collected.some((collectible) => collectible.kind === "powerPellet"),
     nextStatus: remainingCollectibles.length === 0 ? "levelCompleted" : null
   };
 };

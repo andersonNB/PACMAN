@@ -20,7 +20,6 @@ const TILE_SIZE = 34;
 
 const COLORS = {
   background: "#07111f",
-  backgroundAccent: "#0d223d",
   wall: "#3b86ff",
   wallGlow: "rgba(95, 162, 255, 0.35)",
   pellet: "#ffd86b",
@@ -136,7 +135,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     livesValue.textContent = String(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
       ? "Press Enter to start"
-      : "Arrows/WASD move • Space pause • R restart • Tab debug";
+      : "Arrows/WASD move | Space pause | R restart | Tab debug";
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -246,7 +245,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 8 Quality & Scalability</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 9 Frightened Mode</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -283,7 +282,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   hint.setAttribute("data-role", "hint-value");
   hint.style.padding = "12px 14px";
   hint.style.borderRadius = "16px";
-  hint.style.color = "#96afcc";
+  hint.style.color = COLORS.muted;
   hint.style.background = "linear-gradient(90deg, rgba(13,34,61,0.95), rgba(8,17,30,0.95))";
   hint.style.border = "1px solid rgba(136,196,255,0.18)";
   hint.textContent = "Press Enter to start";
@@ -361,6 +360,7 @@ const createDebugText = (
   return [
     `tick: ${snapshot.tick}`,
     `status: ${snapshot.status}`,
+    `frightened: ${snapshot.frightenedTimerMs === null ? "off" : `${snapshot.frightenedTimerMs}ms`}`,
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,

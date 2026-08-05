@@ -30,10 +30,12 @@ const createSession = () =>
     createGameSession(createBoard(LEVEL), {
       playerSpeedUnitsPerSecond: 2,
       enemySpeedUnitsPerSecond: 2,
+      frightenedDurationMs: 1200,
       initialLives: 2,
       scoring: {
         dotPoints: 10,
-        powerPelletPoints: 50
+        powerPelletPoints: 50,
+        enemyPoints: 200
       },
       respawnDelayMs: 1000,
       levelCompletedDelayMs: 1000

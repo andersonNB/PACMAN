@@ -16,10 +16,12 @@ startBrowserDemo({
   sessionConfig: {
     playerSpeedUnitsPerSecond: 3.2,
     enemySpeedUnitsPerSecond: 2.4,
+    frightenedDurationMs: 4000,
     initialLives: 3,
     scoring: {
       dotPoints: 10,
-      powerPelletPoints: 50
+      powerPelletPoints: 50,
+      enemyPoints: 200
     },
     respawnDelayMs: 1000,
     levelCompletedDelayMs: 1000
