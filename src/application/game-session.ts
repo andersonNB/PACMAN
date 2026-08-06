@@ -6,7 +6,7 @@ import {
   createEnemies,
   detectEnemyCollision,
   getDefaultEnemyBehaviorMode,
-  resetEnemyToHome,
+  markEnemyAsReturningHome,
   setEnemyBehaviorMode,
   type RandomNumberSource
 } from "../domain/enemy.js";
@@ -114,7 +114,9 @@ export const advanceGameSession = (
     })
   );
 
-  const dangerousCollisions = collidedEnemies.filter((enemy) => enemy.behaviorMode !== "frightened");
+  const dangerousCollisions = collidedEnemies.filter(
+    (enemy) => enemy.behaviorMode !== "frightened" && enemy.navigationState !== "returningHome"
+  );
 
   if (dangerousCollisions.length > 0) {
     const remainingLives = state.lives.value - 1;
@@ -130,6 +132,7 @@ export const advanceGameSession = (
       status: remainingLives <= 0 ? "gameOver" : "playerDying",
       phaseTimerMs: remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
       frightenedTimerMs: null,
+      frightenedChainCount: 0,
       tick: state.tick + 1
     };
   }
@@ -142,9 +145,20 @@ export const advanceGameSession = (
   const frightenedCollisionCount = frightenedCollisionIds.size;
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
   const enemiesAfterCollision = enemies.map((enemy) =>
-    frightenedCollisionIds.has(enemy.id) ? resetEnemyToHome(enemy) : enemy
+    frightenedCollisionIds.has(enemy.id) ? markEnemyAsReturningHome(enemy) : enemy
   );
   const normalizedEnemies = normalizeEnemyModes(enemiesAfterCollision, frightenedTimerMs);
+  const frightenedChainCount = resolveFrightenedChainCount(
+    state,
+    frightenedCollisionCount,
+    frightenedTimerMs,
+    collectionResult.frightenedTriggered
+  );
+  const frightenedEnemyScore = computeFrightenedEnemyScore(
+    state.sessionConfig.scoring.enemyPoints,
+    collectionResult.frightenedTriggered ? 0 : state.frightenedChainCount,
+    frightenedCollisionCount
+  );
 
   return {
     ...state,
@@ -155,12 +169,13 @@ export const advanceGameSession = (
       value:
         state.score.value
         + collectionResult.scoreDelta
-        + frightenedCollisionCount * state.sessionConfig.scoring.enemyPoints
+        + frightenedEnemyScore
     },
     status: collectionResult.nextStatus === null ? state.status : collectionResult.nextStatus,
     phaseTimerMs:
       collectionResult.nextStatus === "levelCompleted" ? state.sessionConfig.levelCompletedDelayMs : state.phaseTimerMs,
     frightenedTimerMs,
+    frightenedChainCount,
     tick: state.tick + 1
   };
 };
@@ -171,6 +186,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   score: state.score.value,
   lives: state.lives.value,
   frightenedTimerMs: state.frightenedTimerMs,
+  frightenedChainCount: state.frightenedChainCount,
   player: {
     position: state.player.position,
     currentDirection: state.player.currentDirection,
@@ -214,6 +230,7 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     status: "running",
     phaseTimerMs: null,
     frightenedTimerMs: null,
+    frightenedChainCount: 0,
     tick: state.tick + 1
   };
 };
@@ -234,6 +251,7 @@ const advanceLevelCompletedState = (state: GameState, deltaMs: number): GameStat
     status: "victory",
     phaseTimerMs: null,
     frightenedTimerMs: null,
+    frightenedChainCount: 0,
     tick: state.tick + 1
   };
 };
@@ -257,6 +275,7 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   tick: 0,
   phaseTimerMs: null,
   frightenedTimerMs: null,
+  frightenedChainCount: 0,
   sessionConfig
 });
 
@@ -296,7 +315,37 @@ const normalizeEnemyModes = (
   frightenedTimerMs: number | null
 ): readonly ReturnType<typeof setEnemyBehaviorMode>[] =>
   enemies.map((enemy) =>
-    frightenedTimerMs === null && enemy.behaviorMode === "frightened"
+    enemy.navigationState === "returningHome"
+      ? enemy
+      : frightenedTimerMs === null && enemy.behaviorMode === "frightened"
       ? setEnemyBehaviorMode(enemy, getDefaultEnemyBehaviorMode(enemy))
       : enemy
   );
+
+const resolveFrightenedChainCount = (
+  state: GameState,
+  frightenedCollisionCount: number,
+  frightenedTimerMs: number | null,
+  frightenedTriggered: boolean
+): number => {
+  if (frightenedTimerMs === null) {
+    return 0;
+  }
+
+  const baseChainCount = frightenedTriggered ? 0 : state.frightenedChainCount;
+  return baseChainCount + frightenedCollisionCount;
+};
+
+const computeFrightenedEnemyScore = (
+  baseEnemyPoints: number,
+  chainStart: number,
+  frightenedCollisionCount: number
+): number => {
+  let total = 0;
+
+  for (let index = 0; index < frightenedCollisionCount; index += 1) {
+    total += baseEnemyPoints * (2 ** (chainStart + index));
+  }
+
+  return total;
+};

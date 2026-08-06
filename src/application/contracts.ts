@@ -42,6 +42,7 @@ export type GameSnapshot = Readonly<{
   score: number;
   lives: number;
   frightenedTimerMs: number | null;
+  frightenedChainCount: number;
   player: PlayerSnapshot;
   enemies: readonly EnemySnapshot[];
   collectibles: readonly CollectibleSnapshot[];

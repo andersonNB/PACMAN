@@ -57,7 +57,7 @@ describe("game session frightened mode", () => {
     expect(state.enemies[0]?.behaviorMode).toBe("chase");
   });
 
-  it("respawns frightened enemies and awards score instead of costing a life", () => {
+  it("sends frightened enemies back home and awards score instead of costing a life", () => {
     let state = createSession();
 
     state = requestDirectionForSession(state, "right");
@@ -77,7 +77,63 @@ describe("game session frightened mode", () => {
     expect(state.status).toBe("running");
     expect(state.lives.value).toBe(3);
     expect(state.score.value).toBe(260);
+    expect(state.frightenedChainCount).toBe(1);
+    expect(state.enemies[0]?.position).toEqual(tileToWorldPosition({ row: 1, column: 3 }));
+    expect(state.enemies[0]?.navigationState).toBe("returningHome");
+  });
+
+  it("chains enemy score within the same frightened window", () => {
+    let state = createSession();
+
+    state = requestDirectionForSession(state, "right");
+    state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
+
+    state = {
+      ...state,
+      enemies: state.enemies.map((enemy) => ({
+        ...enemy,
+        position: tileToWorldPosition({ row: 1, column: 3 })
+      }))
+    };
+
+    state = requestDirectionForSession(state, "right");
+    state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
+
+    state = {
+      ...state,
+      enemies: state.enemies.map((enemy) => ({
+        ...enemy,
+        position: tileToWorldPosition({ row: 1, column: 3 }),
+        navigationState: "outside",
+        behaviorMode: "frightened"
+      }))
+    };
+
+    state = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+
+    expect(state.score.value).toBe(660);
+    expect(state.frightenedChainCount).toBe(2);
+  });
+
+  it("resets returningHome enemies to outside mode once they reach home", () => {
+    let state = createSession();
+
+    state = {
+      ...state,
+      enemies: state.enemies.map((enemy) => ({
+        ...enemy,
+        position: tileToWorldPosition({ row: 2, column: 4 }),
+        velocity: { unitsPerSecond: 2 },
+        currentDirection: "left",
+        navigationState: "returningHome",
+        behaviorMode: "chase"
+      }))
+    };
+
+    state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
+
     expect(state.enemies[0]?.position).toEqual(tileToWorldPosition({ row: 2, column: 3 }));
     expect(state.enemies[0]?.behaviorMode).toBe("chase");
+    expect(state.enemies[0]?.navigationState).toBe("outside");
   });
 });

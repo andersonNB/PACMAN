@@ -79,5 +79,6 @@ export type GameState = Readonly<{
   tick: number;
   phaseTimerMs: number | null;
   frightenedTimerMs: number | null;
+  frightenedChainCount: number;
   sessionConfig: SessionConfigState;
 }>;

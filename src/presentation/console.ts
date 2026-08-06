@@ -86,6 +86,10 @@ export const createConsolePreview = (board: Board): string =>
   });
 
 const enemyGlyph = (enemy: Enemy): string => {
+  if (enemy.navigationState === "returningHome") {
+    return "e";
+  }
+
   if (enemy.behaviorMode === "frightened") {
     return "F";
   }

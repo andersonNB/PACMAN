@@ -70,6 +70,20 @@ export const setEnemyBehaviorMode = (enemy: Enemy, behaviorMode: Enemy["behavior
   behaviorMode
 });
 
+export const setEnemyNavigationState = (
+  enemy: Enemy,
+  navigationState: Enemy["navigationState"]
+): Enemy => ({
+  ...enemy,
+  navigationState
+});
+
+export const markEnemyAsReturningHome = (enemy: Enemy): Enemy => ({
+  ...enemy,
+  behaviorMode: getDefaultEnemyBehaviorMode(enemy),
+  navigationState: "returningHome"
+});
+
 export const resetEnemyToHome = (enemy: Enemy): Enemy => ({
   ...enemy,
   position: tileToWorldPosition(enemy.homeTile),
@@ -117,6 +131,10 @@ export const advanceEnemy = (params: {
         normalizeWorldPosition(movePosition(enemy.position, activeDirection, stepDistance), board)
       )
     };
+
+    if (enemy.navigationState === "returningHome" && isAtTileCenter(enemy.position) && sameTile(worldToTilePosition(enemy.position), enemy.homeTile)) {
+      enemy = resetEnemyToHome(enemy);
+    }
 
     remainingDistance -= stepDistance;
 
@@ -169,18 +187,22 @@ const resolveEnemyDirectionAtCenter = (
     nonReverseDirections.length > 0 ? nonReverseDirections : availableDirections;
 
   const randomValue = nextRandom();
-  const strategy = enemy.behaviorMode === "frightened" ? enemyStrategies.flee : enemyStrategies[enemy.strategyId];
-  const chosenDirection =
-    strategy?.chooseDirection({
-      selfId: enemy.id,
-      currentTile,
-      currentDirection: enemy.currentDirection,
-      availableDirections: candidateDirections,
-      playerTile,
-      homeTile: enemy.homeTile,
-      scatterTargetTile: enemy.scatterTargetTile,
-      randomValue
-    }) ?? enemy.currentDirection;
+  const chosenDirection = enemy.navigationState === "returningHome"
+    ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.homeTile, "nearest") ?? enemy.currentDirection
+    : (
+        enemy.behaviorMode === "frightened"
+          ? enemyStrategies.flee
+          : enemyStrategies[enemy.strategyId]
+      )?.chooseDirection({
+        selfId: enemy.id,
+        currentTile,
+        currentDirection: enemy.currentDirection,
+        availableDirections: candidateDirections,
+        playerTile,
+        homeTile: enemy.homeTile,
+        scatterTargetTile: enemy.scatterTargetTile,
+        randomValue
+      }) ?? enemy.currentDirection;
 
   return {
     ...enemy,
@@ -260,6 +282,52 @@ const previousHalfStep = (coordinate: number): number => Math.ceil(coordinate - 
 
 const sameTile = (left: TilePosition, right: TilePosition): boolean =>
   left.row === right.row && left.column === right.column;
+
+const chooseDirectionByTarget = (
+  directions: readonly Direction[],
+  origin: TilePosition,
+  target: TilePosition,
+  preference: "nearest" | "farthest"
+): Direction | null => {
+  let selectedDirection: Direction | null = null;
+  let selectedDistance = preference === "nearest" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+
+  directions.forEach((direction) => {
+    const nextTile = moveTile(origin, direction);
+    const distance = manhattanDistance(nextTile, target);
+
+    if (preference === "nearest" && distance < selectedDistance) {
+      selectedDistance = distance;
+      selectedDirection = direction;
+    }
+
+    if (preference === "farthest" && distance > selectedDistance) {
+      selectedDistance = distance;
+      selectedDirection = direction;
+    }
+  });
+
+  return selectedDirection;
+};
+
+const moveTile = (tile: TilePosition, direction: Direction): TilePosition => {
+  if (direction === "up") {
+    return { row: tile.row - 1, column: tile.column };
+  }
+
+  if (direction === "down") {
+    return { row: tile.row + 1, column: tile.column };
+  }
+
+  if (direction === "left") {
+    return { row: tile.row, column: tile.column - 1 };
+  }
+
+  return { row: tile.row, column: tile.column + 1 };
+};
+
+const manhattanDistance = (left: TilePosition, right: TilePosition): number =>
+  Math.abs(left.row - right.row) + Math.abs(left.column - right.column);
 
 export const createDeterministicRandom = (values: readonly number[]): RandomNumberSource => {
   let index = 0;

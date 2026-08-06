@@ -245,7 +245,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 9 Frightened Mode</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 10 Eaten Return & Combo</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -361,6 +361,7 @@ const createDebugText = (
     `tick: ${snapshot.tick}`,
     `status: ${snapshot.status}`,
     `frightened: ${snapshot.frightenedTimerMs === null ? "off" : `${snapshot.frightenedTimerMs}ms`}`,
+    `chain: ${snapshot.frightenedChainCount}`,
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
@@ -446,7 +447,9 @@ const drawEnemies = (
   currentSnapshot.enemies.forEach((enemy) => {
     const previousEnemy = previousSnapshot.enemies.find((candidate) => candidate.id === enemy.id) ?? enemy;
     const position = interpolatePosition(previousEnemy.position, enemy.position, alpha);
-    const color = enemy.behaviorMode === "frightened"
+    const color = enemy.navigationState === "returningHome"
+      ? "#dfe8ff"
+      : enemy.behaviorMode === "frightened"
       ? COLORS.frightened
       : enemy.id.endsWith("1")
         ? COLORS.chase

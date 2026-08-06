@@ -374,6 +374,17 @@ Regla:
   - puntaje adicional por enemigo vulnerable
   - nivel demo con pellets visibles para validar parecido al arcade
 
+### Fase 10. Enemigos comidos y score encadenado
+
+- Objetivo: reemplazar el respawn instantaneo por un retorno visible al home tile y acercar la puntuacion al ritmo arcade.
+- Aprendizaje: uso real del eje `navigationState` y reglas de combo dentro de una misma ventana temporal.
+- Entregable base:
+  - enemigos comidos pasando a `returningHome`
+  - restauracion a `outside` al llegar al home tile
+  - score encadenado `200/400/800/...` dentro del mismo frightened
+  - glyph/visual diferenciada para enemigos que regresan a casa
+  - tests focalizados para retorno y combo
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -427,3 +438,9 @@ Regla:
 - Los `power pellets` activan vulnerabilidad global de enemigos por una duracion determinista.
 - La colision contra un enemigo frightened deja de costar vida y concede score extra con respawn simplificado al home tile.
 - El demo del navegador ya contiene pellets visibles para comparar mejor el comportamiento con el referente arcade.
+
+## 19. Fase 10 implementada
+
+- Los enemigos comidos ya no reaparecen instantaneamente: entran en `returningHome` y vuelven por el tablero.
+- La racha de frightened queda explicitada en el estado para soportar combos de score crecientes.
+- Consola y canvas distinguen visualmente a los enemigos que estan regresando al home tile.
