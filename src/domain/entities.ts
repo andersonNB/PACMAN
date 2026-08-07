@@ -59,6 +59,10 @@ export type SessionConfigState = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
   frightenedDurationMs: number;
+  enemyModeSchedule: readonly Readonly<{
+    mode: "scatter" | "chase";
+    durationMs: number;
+  }>[];
   scoring: Readonly<{
     dotPoints: number;
     powerPelletPoints: number;
@@ -80,5 +84,8 @@ export type GameState = Readonly<{
   phaseTimerMs: number | null;
   frightenedTimerMs: number | null;
   frightenedChainCount: number;
+  globalEnemyMode: "scatter" | "chase";
+  globalEnemyModeIndex: number;
+  globalEnemyModeTimerMs: number;
   sessionConfig: SessionConfigState;
 }>;

@@ -43,6 +43,8 @@ export type GameSnapshot = Readonly<{
   lives: number;
   frightenedTimerMs: number | null;
   frightenedChainCount: number;
+  globalEnemyMode: "scatter" | "chase";
+  globalEnemyModeTimerMs: number;
   player: PlayerSnapshot;
   enemies: readonly EnemySnapshot[];
   collectibles: readonly CollectibleSnapshot[];

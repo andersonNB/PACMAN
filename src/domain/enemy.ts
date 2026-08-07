@@ -189,20 +189,22 @@ const resolveEnemyDirectionAtCenter = (
   const randomValue = nextRandom();
   const chosenDirection = enemy.navigationState === "returningHome"
     ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.homeTile, "nearest") ?? enemy.currentDirection
-    : (
-        enemy.behaviorMode === "frightened"
-          ? enemyStrategies.flee
-          : enemyStrategies[enemy.strategyId]
-      )?.chooseDirection({
-        selfId: enemy.id,
-        currentTile,
-        currentDirection: enemy.currentDirection,
-        availableDirections: candidateDirections,
-        playerTile,
-        homeTile: enemy.homeTile,
-        scatterTargetTile: enemy.scatterTargetTile,
-        randomValue
-      }) ?? enemy.currentDirection;
+    : enemy.behaviorMode === "scatter"
+      ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.scatterTargetTile, "nearest") ?? enemy.currentDirection
+      : (
+          enemy.behaviorMode === "frightened"
+            ? enemyStrategies.flee
+            : enemyStrategies[enemy.strategyId]
+        )?.chooseDirection({
+          selfId: enemy.id,
+          currentTile,
+          currentDirection: enemy.currentDirection,
+          availableDirections: candidateDirections,
+          playerTile,
+          homeTile: enemy.homeTile,
+          scatterTargetTile: enemy.scatterTargetTile,
+          randomValue
+        }) ?? enemy.currentDirection;
 
   return {
     ...enemy,

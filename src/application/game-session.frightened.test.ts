@@ -25,6 +25,10 @@ const createSession = () =>
       playerSpeedUnitsPerSecond: 2,
       enemySpeedUnitsPerSecond: 0,
       frightenedDurationMs: 1000,
+      enemyModeSchedule: [
+        { mode: "scatter", durationMs: 3000 },
+        { mode: "chase", durationMs: 6000 }
+      ],
       initialLives: 3,
       scoring: {
         dotPoints: 10,
@@ -44,6 +48,7 @@ describe("game session frightened mode", () => {
     state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
 
     expect(state.frightenedTimerMs).toBe(1000);
+    expect(state.globalEnemyMode).toBe("scatter");
     expect(state.enemies.every((enemy) => enemy.behaviorMode === "frightened")).toBe(true);
 
     state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));

@@ -385,6 +385,17 @@ Regla:
   - glyph/visual diferenciada para enemigos que regresan a casa
   - tests focalizados para retorno y combo
 
+### Fase 11. Ciclo global scatter/chase
+
+- Objetivo: recuperar la sensacion de presion oscilante del arcade en lugar de dejar enemigos en un modo fijo.
+- Aprendizaje: scheduler temporal de dominio, modos globales y suspension de timers durante estados prioritarios.
+- Entregable base:
+  - schedule declarativo de `scatter/chase`
+  - countdown del modo global dentro de `GameState`
+  - pausa del scheduler mientras `frightened` esta activo
+  - snapshot y debug mostrando modo actual y tiempo restante
+  - tests focalizados para cambio de modo y pausa temporal
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -444,3 +455,9 @@ Regla:
 - Los enemigos comidos ya no reaparecen instantaneamente: entran en `returningHome` y vuelven por el tablero.
 - La racha de frightened queda explicitada en el estado para soportar combos de score crecientes.
 - Consola y canvas distinguen visualmente a los enemigos que estan regresando al home tile.
+
+## 20. Fase 11 implementada
+
+- El motor ahora alterna `scatter` y `chase` mediante un scheduler declarado en configuracion.
+- El timer global no avanza mientras la ventana de `frightened` esta activa, preservando prioridad de reglas.
+- El snapshot expone modo y tiempo restante para debug, entrevista y futuros overlays mas cercanos al arcade.

@@ -31,6 +31,10 @@ const createSession = () =>
       playerSpeedUnitsPerSecond: 2,
       enemySpeedUnitsPerSecond: 2,
       frightenedDurationMs: 1200,
+      enemyModeSchedule: [
+        { mode: "scatter", durationMs: 3000 },
+        { mode: "chase", durationMs: 6000 }
+      ],
       initialLives: 2,
       scoring: {
         dotPoints: 10,
