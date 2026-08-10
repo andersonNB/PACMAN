@@ -86,6 +86,10 @@ export const createConsolePreview = (board: Board): string =>
   });
 
 const enemyGlyph = (enemy: Enemy): string => {
+  if (enemy.navigationState === "insideHome") {
+    return "i";
+  }
+
   if (enemy.navigationState === "returningHome") {
     return "e";
   }

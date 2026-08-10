@@ -17,6 +17,7 @@ let state = startGameSession(
     playerSpeedUnitsPerSecond: 2,
     enemySpeedUnitsPerSecond: 2,
     frightenedDurationMs: 4000,
+    enemyReleaseScheduleMs: [2000, 4000, 4000],
     enemyModeSchedule: [
       { mode: "scatter", durationMs: 3000 },
       { mode: "chase", durationMs: 6000 },

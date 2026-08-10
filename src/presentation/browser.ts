@@ -245,7 +245,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 11 Scatter / Chase Cycle</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 12 Staggered Ghost Release</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -363,6 +363,7 @@ const createDebugText = (
     `frightened: ${snapshot.frightenedTimerMs === null ? "off" : `${snapshot.frightenedTimerMs}ms`}`,
     `chain: ${snapshot.frightenedChainCount}`,
     `mode: ${snapshot.globalEnemyMode} (${snapshot.globalEnemyModeTimerMs}ms)`,
+    `release: ${snapshot.enemyReleaseTimerMs === null ? "done" : `${snapshot.enemyReleaseTimerMs}ms`}`,
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,

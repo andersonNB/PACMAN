@@ -31,6 +31,7 @@ const createSession = () =>
       playerSpeedUnitsPerSecond: 2,
       enemySpeedUnitsPerSecond: 2,
       frightenedDurationMs: 1200,
+      enemyReleaseScheduleMs: [1000, 1000],
       enemyModeSchedule: [
         { mode: "scatter", durationMs: 3000 },
         { mode: "chase", durationMs: 6000 }

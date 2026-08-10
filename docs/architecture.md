@@ -396,6 +396,17 @@ Regla:
   - snapshot y debug mostrando modo actual y tiempo restante
   - tests focalizados para cambio de modo y pausa temporal
 
+### Fase 12. Salida escalonada de fantasmas
+
+- Objetivo: evitar que todos los enemigos esten activos desde el primer tick y aproximar el ritmo clasico de presion.
+- Aprendizaje: coordinacion entre `navigationState`, timers de aplicacion y activacion progresiva de entidades.
+- Entregable base:
+  - enemigos secundarios iniciando en `insideHome`
+  - scheduler declarativo de liberacion por delays
+  - activacion progresiva sin acoplar el dominio al render
+  - snapshot/debug con tiempo restante para la siguiente salida
+  - tests focalizados de espera y liberacion
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -461,3 +472,9 @@ Regla:
 - El motor ahora alterna `scatter` y `chase` mediante un scheduler declarado en configuracion.
 - El timer global no avanza mientras la ventana de `frightened` esta activa, preservando prioridad de reglas.
 - El snapshot expone modo y tiempo restante para debug, entrevista y futuros overlays mas cercanos al arcade.
+
+## 21. Fase 12 implementada
+
+- Los fantasmas secundarios pueden comenzar dentro de casa y salir de forma escalonada.
+- La salida usa delays configurables en aplicacion, manteniendo el dominio portable y testeable.
+- El debug visual y la consola ahora dejan ver mejor el ritmo de activacion progresiva del nivel.

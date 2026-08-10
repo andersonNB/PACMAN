@@ -8,6 +8,7 @@ import {
   getDefaultEnemyBehaviorMode,
   markEnemyAsReturningHome,
   setEnemyBehaviorMode,
+  setEnemyNavigationState,
   type RandomNumberSource
 } from "../domain/enemy.js";
 import { createPlayer, advancePlayer, requestPlayerDirection } from "../domain/player.js";
@@ -17,6 +18,7 @@ export type SessionConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
   frightenedDurationMs: number;
+  enemyReleaseScheduleMs: readonly number[];
   enemyModeSchedule: readonly Readonly<{
     mode: "scatter" | "chase";
     durationMs: number;
@@ -97,7 +99,8 @@ export const advanceGameSession = (
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
   const modeProgression = resolveGlobalEnemyMode(state, deltaMs, frightenedTimerMs);
-  const enemiesWithMode = applyGlobalEnemyMode(state.enemies, modeProgression.mode);
+  const releaseProgression = resolveEnemyRelease(state, deltaMs);
+  const enemiesWithMode = applyGlobalEnemyMode(releaseProgression.enemies, modeProgression.mode);
 
   const enemiesWithCurrentMode = collectionResult.frightenedTriggered
     ? enemiesWithMode.map((enemy) => setEnemyBehaviorMode(enemy, "frightened"))
@@ -123,7 +126,7 @@ export const advanceGameSession = (
   );
 
   const dangerousCollisions = collidedEnemies.filter(
-    (enemy) => enemy.behaviorMode !== "frightened" && enemy.navigationState !== "returningHome"
+    (enemy) => enemy.navigationState === "outside" && enemy.behaviorMode !== "frightened"
   );
 
   if (dangerousCollisions.length > 0) {
@@ -141,6 +144,8 @@ export const advanceGameSession = (
       phaseTimerMs: remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
       frightenedTimerMs: null,
       frightenedChainCount: 0,
+      nextEnemyReleaseIndex: 1,
+      enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
       tick: state.tick + 1
     };
   }
@@ -186,6 +191,8 @@ export const advanceGameSession = (
     globalEnemyMode: modeProgression.mode,
     globalEnemyModeIndex: modeProgression.index,
     globalEnemyModeTimerMs: modeProgression.timerMs,
+    nextEnemyReleaseIndex: releaseProgression.nextEnemyReleaseIndex,
+    enemyReleaseTimerMs: releaseProgression.enemyReleaseTimerMs,
     tick: state.tick + 1
   };
 };
@@ -199,6 +206,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   frightenedChainCount: state.frightenedChainCount,
   globalEnemyMode: state.globalEnemyMode,
   globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
+  enemyReleaseTimerMs: state.enemyReleaseTimerMs,
   player: {
     position: state.player.position,
     currentDirection: state.player.currentDirection,
@@ -246,6 +254,8 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     globalEnemyMode: state.sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
     globalEnemyModeIndex: 0,
     globalEnemyModeTimerMs: state.sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
+    nextEnemyReleaseIndex: 1,
+    enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
     tick: state.tick + 1
   };
 };
@@ -270,6 +280,8 @@ const advanceLevelCompletedState = (state: GameState, deltaMs: number): GameStat
     globalEnemyMode: state.globalEnemyMode,
     globalEnemyModeIndex: state.globalEnemyModeIndex,
     globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
+    nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
+    enemyReleaseTimerMs: state.enemyReleaseTimerMs,
     tick: state.tick + 1
   };
 };
@@ -297,6 +309,8 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   globalEnemyMode: sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
   globalEnemyModeIndex: 0,
   globalEnemyModeTimerMs: sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
+  nextEnemyReleaseIndex: 1,
+  enemyReleaseTimerMs: sessionConfig.enemyReleaseScheduleMs[0] ?? null,
   sessionConfig
 });
 
@@ -305,6 +319,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
   enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
   frightenedDurationMs: config.frightenedDurationMs,
+  enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
   enemyModeSchedule: config.enemyModeSchedule,
   scoring: {
     dotPoints: config.scoring.dotPoints,
@@ -415,3 +430,44 @@ const applyGlobalEnemyMode = (
       ? enemy
       : setEnemyBehaviorMode(enemy, globalEnemyMode)
   );
+
+const resolveEnemyRelease = (
+  state: GameState,
+  deltaMs: number
+): Readonly<{
+  enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[];
+  nextEnemyReleaseIndex: number;
+  enemyReleaseTimerMs: number | null;
+}> => {
+  if (state.nextEnemyReleaseIndex >= state.enemies.length || state.enemyReleaseTimerMs === null) {
+    return {
+      enemies: state.enemies,
+      nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
+      enemyReleaseTimerMs: null
+    };
+  }
+
+  let enemies = [...state.enemies];
+  let nextEnemyReleaseIndex = state.nextEnemyReleaseIndex;
+  let enemyReleaseTimerMs: number | null = state.enemyReleaseTimerMs - deltaMs;
+
+  while (enemyReleaseTimerMs <= 0 && nextEnemyReleaseIndex < enemies.length) {
+    enemies = enemies.map((enemy, index) =>
+      index === nextEnemyReleaseIndex ? setEnemyBehaviorMode(setEnemyNavigationState(enemy, "outside"), state.globalEnemyMode) : enemy
+    );
+    nextEnemyReleaseIndex += 1;
+
+    if (nextEnemyReleaseIndex >= enemies.length) {
+      enemyReleaseTimerMs = null;
+      break;
+    }
+
+    enemyReleaseTimerMs += state.sessionConfig.enemyReleaseScheduleMs[nextEnemyReleaseIndex - 1] ?? 0;
+  }
+
+  return {
+    enemies,
+    nextEnemyReleaseIndex,
+    enemyReleaseTimerMs
+  };
+};

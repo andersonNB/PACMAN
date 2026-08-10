@@ -31,13 +31,14 @@ export const createEnemy = (params: {
   behaviorMode?: Enemy["behaviorMode"];
   scatterTargetTile: TilePosition;
   initialDirection?: Direction;
+  navigationState?: Enemy["navigationState"];
 }): Enemy => ({
   id: params.id,
   position: tileToWorldPosition(params.spawnTile),
   currentDirection: params.initialDirection ?? "left",
   velocity: params.velocity,
   behaviorMode: params.behaviorMode ?? "scatter",
-  navigationState: "outside",
+  navigationState: params.navigationState ?? "outside",
   strategyId: params.strategyId,
   homeTile: params.spawnTile,
   scatterTargetTile: params.scatterTargetTile
@@ -61,7 +62,8 @@ export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[
       strategyId,
       behaviorMode: getDefaultEnemyBehaviorMode({ strategyId }),
       scatterTargetTile,
-      initialDirection: index % 2 === 0 ? "left" : "right"
+      initialDirection: index % 2 === 0 ? "left" : "right",
+      navigationState: index === 0 ? "outside" : "insideHome"
     });
   });
 
@@ -102,7 +104,7 @@ export const advanceEnemy = (params: {
   const { board, deltaMs, nextRandom, playerPosition } = params;
   let enemy = params.enemy;
 
-  if (deltaMs <= 0) {
+  if (deltaMs <= 0 || enemy.navigationState === "insideHome") {
     return enemy;
   }
 
