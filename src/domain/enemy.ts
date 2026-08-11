@@ -80,6 +80,12 @@ export const setEnemyNavigationState = (
   navigationState
 });
 
+export const releaseEnemyFromHome = (enemy: Enemy): Enemy => ({
+  ...enemy,
+  currentDirection: "up",
+  navigationState: "leavingHome"
+});
+
 export const markEnemyAsReturningHome = (enemy: Enemy): Enemy => ({
   ...enemy,
   behaviorMode: getDefaultEnemyBehaviorMode(enemy),
@@ -133,6 +139,13 @@ export const advanceEnemy = (params: {
         normalizeWorldPosition(movePosition(enemy.position, activeDirection, stepDistance), board)
       )
     };
+
+    if (enemy.navigationState === "leavingHome" && reachedHomeExit(enemy, board)) {
+      enemy = {
+        ...enemy,
+        navigationState: "outside"
+      };
+    }
 
     if (enemy.navigationState === "returningHome" && isAtTileCenter(enemy.position) && sameTile(worldToTilePosition(enemy.position), enemy.homeTile)) {
       enemy = resetEnemyToHome(enemy);
@@ -191,22 +204,24 @@ const resolveEnemyDirectionAtCenter = (
   const randomValue = nextRandom();
   const chosenDirection = enemy.navigationState === "returningHome"
     ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.homeTile, "nearest") ?? enemy.currentDirection
-    : enemy.behaviorMode === "scatter"
-      ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.scatterTargetTile, "nearest") ?? enemy.currentDirection
-      : (
-          enemy.behaviorMode === "frightened"
-            ? enemyStrategies.flee
-            : enemyStrategies[enemy.strategyId]
-        )?.chooseDirection({
-          selfId: enemy.id,
-          currentTile,
-          currentDirection: enemy.currentDirection,
-          availableDirections: candidateDirections,
-          playerTile,
-          homeTile: enemy.homeTile,
-          scatterTargetTile: enemy.scatterTargetTile,
-          randomValue
-        }) ?? enemy.currentDirection;
+    : enemy.navigationState === "leavingHome"
+      ? chooseDirectionByTarget(candidateDirections, currentTile, getHomeExitTargetTile(board, enemy.homeTile), "nearest") ?? enemy.currentDirection
+      : enemy.behaviorMode === "scatter"
+        ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.scatterTargetTile, "nearest") ?? enemy.currentDirection
+        : (
+            enemy.behaviorMode === "frightened"
+              ? enemyStrategies.flee
+              : enemyStrategies[enemy.strategyId]
+          )?.chooseDirection({
+            selfId: enemy.id,
+            currentTile,
+            currentDirection: enemy.currentDirection,
+            availableDirections: candidateDirections,
+            playerTile,
+            homeTile: enemy.homeTile,
+            scatterTargetTile: enemy.scatterTargetTile,
+            randomValue
+          }) ?? enemy.currentDirection;
 
   return {
     ...enemy,
@@ -286,6 +301,24 @@ const previousHalfStep = (coordinate: number): number => Math.ceil(coordinate - 
 
 const sameTile = (left: TilePosition, right: TilePosition): boolean =>
   left.row === right.row && left.column === right.column;
+
+const reachedHomeExit = (enemy: Enemy, board: Board): boolean =>
+  isAtTileCenter(enemy.position) &&
+  sameTile(worldToTilePosition(enemy.position), getHomeExitTargetTile(board, enemy.homeTile));
+
+const getHomeExitTargetTile = (board: Board, homeTile: TilePosition): TilePosition => {
+  const boardQuery = createBoardQuery(board);
+
+  for (let row = homeTile.row - 1; row >= 0; row -= 1) {
+    const candidate = { row, column: homeTile.column };
+
+    if (boardQuery.isWalkable(candidate)) {
+      return candidate;
+    }
+  }
+
+  return homeTile;
+};
 
 const chooseDirectionByTarget = (
   directions: readonly Direction[],

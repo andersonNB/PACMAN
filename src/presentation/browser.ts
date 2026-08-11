@@ -245,7 +245,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 12 Staggered Ghost Release</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 13 Leaving Home Exit</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -367,7 +367,7 @@ const createDebugText = (
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
-    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.behaviorMode}`).join(" | ")}`
+    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.behaviorMode}/${enemy.navigationState}`).join(" | ")}`
   ]
     .map((line) => `<div>${escapeHtml(line)}</div>`)
     .join("");
@@ -451,6 +451,8 @@ const drawEnemies = (
     const position = interpolatePosition(previousEnemy.position, enemy.position, alpha);
     const color = enemy.navigationState === "returningHome"
       ? "#dfe8ff"
+      : enemy.navigationState === "leavingHome"
+      ? "#9fe0ff"
       : enemy.behaviorMode === "frightened"
       ? COLORS.frightened
       : enemy.id.endsWith("1")

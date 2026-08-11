@@ -90,6 +90,10 @@ const enemyGlyph = (enemy: Enemy): string => {
     return "i";
   }
 
+  if (enemy.navigationState === "leavingHome") {
+    return "l";
+  }
+
   if (enemy.navigationState === "returningHome") {
     return "e";
   }

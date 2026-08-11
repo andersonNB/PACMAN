@@ -7,8 +7,8 @@ import {
   detectEnemyCollision,
   getDefaultEnemyBehaviorMode,
   markEnemyAsReturningHome,
+  releaseEnemyFromHome,
   setEnemyBehaviorMode,
-  setEnemyNavigationState,
   type RandomNumberSource
 } from "../domain/enemy.js";
 import { createPlayer, advancePlayer, requestPlayerDirection } from "../domain/player.js";
@@ -453,7 +453,7 @@ const resolveEnemyRelease = (
 
   while (enemyReleaseTimerMs <= 0 && nextEnemyReleaseIndex < enemies.length) {
     enemies = enemies.map((enemy, index) =>
-      index === nextEnemyReleaseIndex ? setEnemyBehaviorMode(setEnemyNavigationState(enemy, "outside"), state.globalEnemyMode) : enemy
+      index === nextEnemyReleaseIndex ? setEnemyBehaviorMode(releaseEnemyFromHome(enemy), state.globalEnemyMode) : enemy
     );
     nextEnemyReleaseIndex += 1;
 

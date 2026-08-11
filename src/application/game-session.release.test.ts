@@ -18,7 +18,7 @@ const createSession = () =>
   startGameSession(
     createGameSession(createBoard(RELEASE_LEVEL), {
       playerSpeedUnitsPerSecond: 2,
-      enemySpeedUnitsPerSecond: 0,
+      enemySpeedUnitsPerSecond: 2,
       frightenedDurationMs: 1000,
       enemyReleaseScheduleMs: [500, 1000],
       enemyModeSchedule: [
@@ -48,10 +48,24 @@ describe("game session enemy release", () => {
   it("releases the next enemy when the timer reaches zero", () => {
     let state = createSession();
 
-    state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
+    for (let index = 0; index < 5; index += 1) {
+      state = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    }
 
-    expect(state.enemies[1]?.navigationState).toBe("outside");
+    expect(state.enemies[1]?.navigationState).toBe("leavingHome");
+    expect(state.enemies[1]?.currentDirection).toBe("up");
     expect(state.nextEnemyReleaseIndex).toBe(2);
     expect(state.enemyReleaseTimerMs).toBeNull();
+  });
+
+  it("promotes a leavingHome enemy to outside after it reaches the exit lane", () => {
+    let state = createSession();
+
+    for (let index = 0; index < 9; index += 1) {
+      state = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    }
+
+    expect(state.enemies[1]?.navigationState).toBe("outside");
+    expect(state.enemies[1]?.position).toEqual({ x: 5.5, y: 2.5 });
   });
 });

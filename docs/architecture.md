@@ -407,6 +407,17 @@ Regla:
   - snapshot/debug con tiempo restante para la siguiente salida
   - tests focalizados de espera y liberacion
 
+### Fase 13. Salida visible desde casa
+
+- Objetivo: evitar la sensacion de "teletransporte" al liberar fantasmas y acercar la puesta en escena al arcade.
+- Aprendizaje: uso efectivo de `leavingHome` como estado navegable y no solo documental.
+- Entregable base:
+  - liberacion `insideHome -> leavingHome -> outside`
+  - direccion inicial de salida orientada hacia la calle superior
+  - transicion automatica a `outside` al alcanzar el carril de salida
+  - diferenciacion visual en canvas y consola para el estado `leavingHome`
+  - tests focalizados para salida parcial y salida completada
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -478,3 +489,9 @@ Regla:
 - Los fantasmas secundarios pueden comenzar dentro de casa y salir de forma escalonada.
 - La salida usa delays configurables en aplicacion, manteniendo el dominio portable y testeable.
 - El debug visual y la consola ahora dejan ver mejor el ritmo de activacion progresiva del nivel.
+
+## 22. Fase 13 implementada
+
+- La liberacion ya no activa enemigos directamente en `outside`: ahora pasan por `leavingHome`.
+- El dominio calcula una salida vertical simple hasta el primer carril caminable por encima del spawn.
+- El navegador y la consola distinguen ese estado intermedio para comparar mejor el ritmo visual con el Pac-Man clasico.
