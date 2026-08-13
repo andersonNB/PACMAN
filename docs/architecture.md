@@ -418,6 +418,17 @@ Regla:
   - diferenciacion visual en canvas y consola para el estado `leavingHome`
   - tests focalizados para salida parcial y salida completada
 
+### Fase 14. Ghost house con topologia contextual
+
+- Objetivo: representar la casa de fantasmas como parte real del tablero y no como decoracion sin reglas.
+- Aprendizaje: el mismo tile no necesariamente es transitable por todos los actores; la topologia depende del rol de movimiento.
+- Entregable base:
+  - reglas de walkability separadas para jugador y enemigos
+  - `ghostHouse` y `restricted` usadas en navegacion, no solo en render
+  - enemigos `insideHome`, `leavingHome` y `returningHome` con acceso contextual a la casa
+  - jugador y enemigos `outside` bloqueados por la puerta de la casa
+  - nivel demo con ghost house visible para comparar mejor el parecido arcade
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -495,3 +506,9 @@ Regla:
 - La liberacion ya no activa enemigos directamente en `outside`: ahora pasan por `leavingHome`.
 - El dominio calcula una salida vertical simple hasta el primer carril caminable por encima del spawn.
 - El navegador y la consola distinguen ese estado intermedio para comparar mejor el ritmo visual con el Pac-Man clasico.
+
+## 23. Fase 14 implementada
+
+- El tablero ya diferencia rutas del jugador frente a rutas de enemigos segun su `navigationState`.
+- La ghost house y su puerta restringida forman parte de la topologia real del nivel demo.
+- El render del navegador deja visible esa estructura para facilitar comparacion visual con el referente original.

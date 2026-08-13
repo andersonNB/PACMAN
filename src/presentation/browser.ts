@@ -25,6 +25,8 @@ const COLORS = {
   pellet: "#ffd86b",
   player: "#ffd400",
   tunnel: "#173b6f",
+  ghostHouse: "#182c4e",
+  restricted: "#a45a5a",
   path: "#08111e",
   text: "#f4f8ff",
   muted: "#96afcc",
@@ -245,7 +247,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 13 Leaving Home Exit</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 14 Ghost House Topology</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -390,7 +392,14 @@ const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof c
       continue;
     }
 
-    context.fillStyle = tile.kind === "tunnel" ? COLORS.tunnel : COLORS.path;
+    context.fillStyle =
+      tile.kind === "tunnel"
+        ? COLORS.tunnel
+        : tile.kind === "ghostHouse"
+          ? COLORS.ghostHouse
+          : tile.kind === "restricted"
+            ? COLORS.restricted
+            : COLORS.path;
     context.fillRect(x, y, TILE_SIZE, TILE_SIZE);
   }
 };

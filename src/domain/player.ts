@@ -63,7 +63,7 @@ export const advancePlayer = ({ board, player, deltaMs }: AdvancePlayerParams): 
     const activeDirection = nextPlayer.currentDirection;
     const boardQuery = createBoardQuery(board);
 
-    if (!boardQuery.getAllowedDirections(currentTile).includes(activeDirection)) {
+    if (!boardQuery.getAllowedDirectionsForPlayer(currentTile).includes(activeDirection)) {
       break;
     }
 
@@ -107,7 +107,7 @@ const isCenteredCoordinate = (coordinate: number): boolean =>
 
 const resolveDirectionAtCenter = (player: Player, currentTile: TilePosition, board: Board): Player => {
   const boardQuery = createBoardQuery(board);
-  const availableDirections = boardQuery.getAllowedDirections(currentTile);
+  const availableDirections = boardQuery.getAllowedDirectionsForPlayer(currentTile);
   const requestedDirection = player.requestedDirection;
 
   if (requestedDirection !== null && availableDirections.includes(requestedDirection)) {

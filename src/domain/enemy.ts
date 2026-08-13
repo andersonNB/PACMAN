@@ -126,7 +126,7 @@ export const advanceEnemy = (params: {
     const boardQuery = createBoardQuery(board);
     const activeDirection = enemy.currentDirection;
 
-    if (!boardQuery.getAllowedDirections(currentTile).includes(activeDirection)) {
+    if (!boardQuery.getAllowedDirectionsForEnemy(currentTile, enemy.navigationState).includes(activeDirection)) {
       break;
     }
 
@@ -188,7 +188,7 @@ const resolveEnemyDirectionAtCenter = (
   nextRandom: RandomNumberSource
 ): Enemy => {
   const boardQuery = createBoardQuery(board);
-  const availableDirections = boardQuery.getAllowedDirections(currentTile);
+  const availableDirections = boardQuery.getAllowedDirectionsForEnemy(currentTile, enemy.navigationState);
 
   if (availableDirections.length === 0) {
     return enemy;

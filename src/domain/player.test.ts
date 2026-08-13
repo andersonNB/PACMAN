@@ -35,14 +35,14 @@ describe("player movement", () => {
     expect(worldToTilePosition(movedPlayer.position)).toEqual({ row: 1, column: 2 });
   });
 
-  it("keeps the current direction if the requested one is blocked", () => {
+  it("keeps moving on the current lane until the requested turn becomes available", () => {
     const player = requestPlayerDirection(
       createPlayer({
         spawnTile: createTilePosition(3, 1),
         initialDirection: "right",
         velocity: { unitsPerSecond: 2 }
       }),
-      "up"
+      "left"
     );
 
     const movedPlayer = advancePlayer({
@@ -52,7 +52,7 @@ describe("player movement", () => {
     });
 
     expect(worldToTilePosition(movedPlayer.position)).toEqual({ row: 3, column: 2 });
-    expect(movedPlayer.currentDirection).toBe("right");
+    expect(movedPlayer.currentDirection).toBe("left");
   });
 
   it("turns into the requested direction when it reaches a valid intersection", () => {

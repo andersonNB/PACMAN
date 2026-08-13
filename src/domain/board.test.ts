@@ -48,8 +48,19 @@ describe("createBoardQuery", () => {
     expect(query.isWalkable(createTilePosition(4, 1))).toBe(false);
   });
 
+  it("applies different walkability rules for player and enemy navigation states", () => {
+    expect(query.isWalkableForPlayer(createTilePosition(3, 3))).toBe(false);
+    expect(query.isWalkableForEnemy(createTilePosition(3, 3), "outside")).toBe(false);
+    expect(query.isWalkableForEnemy(createTilePosition(3, 3), "insideHome")).toBe(true);
+    expect(query.isWalkableForEnemy(createTilePosition(4, 1), "returningHome")).toBe(true);
+  });
+
   it("returns allowed directions from a walkable tile", () => {
-    expect(query.getAllowedDirections(createTilePosition(1, 3))).toEqual(["left", "right", "down"]);
+    expect(query.getAllowedDirections(createTilePosition(1, 3))).toEqual(["down", "left", "right"]);
+  });
+
+  it("keeps restricted and ghostHouse tiles out of player routes", () => {
+    expect(query.getAllowedDirectionsForPlayer(createTilePosition(3, 2))).toEqual(["left"]);
   });
 
   it("marks intersections when a tile has at least three exits", () => {

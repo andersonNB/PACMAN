@@ -1,5 +1,6 @@
 import type { Board, BoardTile } from "./entities.js";
 import { DIRECTIONS, type Direction, type TileKind, type TilePosition } from "./value-objects.js";
+import type { EnemyNavigationState } from "./value-objects.js";
 
 export type LevelSymbol =
   | "#"
@@ -40,7 +41,11 @@ export type BoardQuery = Readonly<{
   getTile: (position: TilePosition) => BoardTile | null;
   isWithinBounds: (position: TilePosition) => boolean;
   isWalkable: (position: TilePosition) => boolean;
+  isWalkableForPlayer: (position: TilePosition) => boolean;
+  isWalkableForEnemy: (position: TilePosition, navigationState: EnemyNavigationState) => boolean;
   getAllowedDirections: (position: TilePosition) => readonly Direction[];
+  getAllowedDirectionsForPlayer: (position: TilePosition) => readonly Direction[];
+  getAllowedDirectionsForEnemy: (position: TilePosition, navigationState: EnemyNavigationState) => readonly Direction[];
   isIntersection: (position: TilePosition) => boolean;
   normalizeTunnelExit: (position: TilePosition) => TilePosition;
 }>;
@@ -118,7 +123,7 @@ export const createBoardQuery = (board: Board): BoardQuery => {
     return createTilePosition(position.row, wrappedColumn);
   };
 
-  const isWalkable = (position: TilePosition): boolean => {
+  const isWalkableForPlayer = (position: TilePosition): boolean => {
     const normalizedPosition = normalizePositionForBoard(position, board);
     const tile = getTile(normalizedPosition);
 
@@ -126,13 +131,32 @@ export const createBoardQuery = (board: Board): BoardQuery => {
       return false;
     }
 
-    return tile.kind !== "wall" && tile.kind !== "restricted";
+    return tile.kind === "path" || tile.kind === "tunnel";
   };
 
-  const getAllowedDirections = (position: TilePosition): readonly Direction[] => {
+  const isWalkableForEnemy = (position: TilePosition, navigationState: EnemyNavigationState): boolean => {
+    const normalizedPosition = normalizePositionForBoard(position, board);
+    const tile = getTile(normalizedPosition);
+
+    if (tile === null) {
+      return false;
+    }
+
+    if (tile.kind === "wall") {
+      return false;
+    }
+
+    if (navigationState === "insideHome" || navigationState === "leavingHome" || navigationState === "returningHome") {
+      return true;
+    }
+
+    return tile.kind === "path" || tile.kind === "tunnel";
+  };
+
+  const getAllowedDirectionsForPlayer = (position: TilePosition): readonly Direction[] => {
     const tile = getTile(position);
 
-    if (tile === null || !isWalkable(position)) {
+    if (tile === null || !isWalkableForPlayer(position)) {
       return [];
     }
 
@@ -143,17 +167,47 @@ export const createBoardQuery = (board: Board): BoardQuery => {
         board
       );
 
-      return isWalkable(nextPosition);
+      return isWalkableForPlayer(nextPosition);
     });
   };
 
-  const isIntersection = (position: TilePosition): boolean => getAllowedDirections(position).length >= 3;
+  const getAllowedDirectionsForEnemy = (
+    position: TilePosition,
+    navigationState: EnemyNavigationState
+  ): readonly Direction[] => {
+    const tile = getTile(position);
+
+    if (tile === null || !isWalkableForEnemy(position, navigationState)) {
+      return [];
+    }
+
+    return DIRECTIONS.filter((direction) => {
+      const vector = DIRECTION_VECTORS[direction];
+      const nextPosition = normalizePositionForBoard(
+        createTilePosition(position.row + vector.rowDelta, position.column + vector.columnDelta),
+        board
+      );
+
+      return isWalkableForEnemy(nextPosition, navigationState);
+    });
+  };
+
+  const getAllowedDirections = (position: TilePosition): readonly Direction[] =>
+    getAllowedDirectionsForPlayer(position);
+
+  const isWalkable = (position: TilePosition): boolean => isWalkableForPlayer(position);
+
+  const isIntersection = (position: TilePosition): boolean => getAllowedDirectionsForPlayer(position).length >= 3;
 
   return {
     getTile,
     isWithinBounds,
     isWalkable,
+    isWalkableForPlayer,
+    isWalkableForEnemy,
     getAllowedDirections,
+    getAllowedDirectionsForPlayer,
+    getAllowedDirectionsForEnemy,
     isIntersection,
     normalizeTunnelExit
   };
