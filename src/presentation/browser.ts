@@ -247,7 +247,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 14 Ghost House Topology</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 15 Four Ghost Roster</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -369,7 +369,7 @@ const createDebugText = (
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
-    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.behaviorMode}/${enemy.navigationState}`).join(" | ")}`
+    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.strategyId}/${enemy.behaviorMode}/${enemy.navigationState}`).join(" | ")}`
   ]
     .map((line) => `<div>${escapeHtml(line)}</div>`)
     .join("");
@@ -464,11 +464,13 @@ const drawEnemies = (
       ? "#9fe0ff"
       : enemy.behaviorMode === "frightened"
       ? COLORS.frightened
-      : enemy.id.endsWith("1")
+      : enemy.strategyId === "chase"
         ? COLORS.chase
-        : enemy.id.endsWith("2")
+        : enemy.strategyId === "ambush"
           ? COLORS.patrol
-          : COLORS.random;
+          : enemy.strategyId === "patrol"
+            ? COLORS.random
+            : "#7fe07f";
 
     drawGhost(context, position.x * TILE_SIZE, position.y * TILE_SIZE, color);
   });

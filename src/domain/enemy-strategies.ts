@@ -20,6 +20,17 @@ export const chasePlayerStrategy: EnemyMovementStrategy = {
     context.currentDirection
 };
 
+export const ambushStrategy: EnemyMovementStrategy = {
+  id: "ambush",
+  chooseDirection: (context) =>
+    chooseDirectionByTarget(
+      context.availableDirections,
+      context.currentTile,
+      projectTile(context.playerTile, context.playerDirection, 2),
+      "nearest"
+    ) ?? context.currentDirection
+};
+
 export const patrolStrategy: EnemyMovementStrategy = {
   id: "patrol",
   chooseDirection: (context) =>
@@ -37,6 +48,7 @@ export const fleeStrategy: EnemyMovementStrategy = {
 export const enemyStrategies: Readonly<Record<string, EnemyMovementStrategy>> = {
   random: randomMovementStrategy,
   chase: chasePlayerStrategy,
+  ambush: ambushStrategy,
   patrol: patrolStrategy,
   flee: fleeStrategy
 };
@@ -82,6 +94,16 @@ const moveTile = (tile: TilePosition, direction: Direction): TilePosition => {
   }
 
   return { row: tile.row, column: tile.column + 1 };
+};
+
+const projectTile = (tile: TilePosition, direction: Direction, distance: number): TilePosition => {
+  let nextTile = tile;
+
+  for (let index = 0; index < distance; index += 1) {
+    nextTile = moveTile(nextTile, direction);
+  }
+
+  return nextTile;
 };
 
 const manhattanDistance = (left: TilePosition, right: TilePosition): number =>

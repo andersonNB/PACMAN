@@ -429,6 +429,17 @@ Regla:
   - jugador y enemigos `outside` bloqueados por la puerta de la casa
   - nivel demo con ghost house visible para comparar mejor el parecido arcade
 
+### Fase 15. Roster completo y roles mas legibles
+
+- Objetivo: acercar la percepcion del clon al reparto clasico de cuatro fantasmas con personalidades diferenciadas.
+- Aprendizaje: el contexto de decision puede crecer de forma controlada si se mantiene inmutable y orientado al dominio.
+- Entregable base:
+  - cuarto enemigo activo en el nivel demo
+  - estrategia `ambush` basada en tiles por delante del jugador
+  - asignacion explicita de roles `chase`, `ambush`, `patrol` y `random`
+  - corners de `scatter` diferenciados por fantasma
+  - visualizacion/debug mostrando mejor el rol real de cada enemigo
+
 ## 15. Casos de prueba que deben quedar cubiertos mas adelante
 
 - El jugador no atraviesa paredes.
@@ -512,3 +523,9 @@ Regla:
 - El tablero ya diferencia rutas del jugador frente a rutas de enemigos segun su `navigationState`.
 - La ghost house y su puerta restringida forman parte de la topologia real del nivel demo.
 - El render del navegador deja visible esa estructura para facilitar comparacion visual con el referente original.
+
+## 24. Fase 15 implementada
+
+- El demo ya contiene cuatro fantasmas con liberacion progresiva desde la casa.
+- El dominio incorpora una estrategia `ambush` simple usando la direccion actual del jugador.
+- El snapshot y los adaptadores visuales distinguen mejor el rol de cada fantasma, facilitando comparacion con el reparto arcade.

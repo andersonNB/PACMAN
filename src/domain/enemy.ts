@@ -49,11 +49,16 @@ export const getDefaultEnemyBehaviorMode = (enemy: Pick<Enemy, "strategyId">): E
 
 export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[] =>
   board.enemySpawns.map((spawnTile, index) => {
-    const strategyId = index === 0 ? "chase" : index === 1 ? "patrol" : "random";
+    const strategyId =
+      index === 0 ? "chase" :
+      index === 1 ? "ambush" :
+      index === 2 ? "patrol" :
+      "random";
     const scatterTargetTile =
-      index % 2 === 0
-        ? { row: 1, column: board.width - 2 }
-        : { row: board.height - 2, column: board.width - 2 };
+      index === 0 ? { row: 1, column: board.width - 2 } :
+      index === 1 ? { row: 1, column: 1 } :
+      index === 2 ? { row: board.height - 2, column: board.width - 2 } :
+      { row: board.height - 2, column: 1 };
 
     return createEnemy({
       id: `enemy-${index + 1}`,
@@ -104,10 +109,11 @@ export const advanceEnemy = (params: {
   board: Board;
   enemy: Enemy;
   playerPosition: WorldPosition;
+  playerDirection: Direction;
   deltaMs: number;
   nextRandom: RandomNumberSource;
 }): Enemy => {
-  const { board, deltaMs, nextRandom, playerPosition } = params;
+  const { board, deltaMs, nextRandom, playerDirection, playerPosition } = params;
   let enemy = params.enemy;
 
   if (deltaMs <= 0 || enemy.navigationState === "insideHome") {
@@ -120,7 +126,14 @@ export const advanceEnemy = (params: {
     const currentTile = worldToTilePosition(enemy.position);
 
     if (isAtTileCenter(enemy.position)) {
-      enemy = resolveEnemyDirectionAtCenter(enemy, currentTile, worldToTilePosition(playerPosition), board, nextRandom);
+      enemy = resolveEnemyDirectionAtCenter(
+        enemy,
+        currentTile,
+        worldToTilePosition(playerPosition),
+        playerDirection,
+        board,
+        nextRandom
+      );
     }
 
     const boardQuery = createBoardQuery(board);
@@ -184,6 +197,7 @@ const resolveEnemyDirectionAtCenter = (
   enemy: Enemy,
   currentTile: TilePosition,
   playerTile: TilePosition,
+  playerDirection: Direction,
   board: Board,
   nextRandom: RandomNumberSource
 ): Enemy => {
@@ -218,6 +232,7 @@ const resolveEnemyDirectionAtCenter = (
             currentDirection: enemy.currentDirection,
             availableDirections: candidateDirections,
             playerTile,
+            playerDirection,
             homeTile: enemy.homeTile,
             scatterTargetTile: enemy.scatterTargetTile,
             randomValue

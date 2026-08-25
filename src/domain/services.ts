@@ -26,6 +26,7 @@ export type EnemyDecisionContext = Readonly<{
   currentDirection: Direction;
   availableDirections: readonly Direction[];
   playerTile: TilePosition;
+  playerDirection: Direction;
   homeTile: TilePosition;
   scatterTargetTile: TilePosition;
   randomValue: number;

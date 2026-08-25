@@ -23,6 +23,7 @@ export type PlayerSnapshot = Readonly<{
 
 export type EnemySnapshot = Readonly<{
   id: string;
+  strategyId: string;
   position: WorldPosition;
   currentDirection: Direction;
   behaviorMode: EnemyBehaviorMode;

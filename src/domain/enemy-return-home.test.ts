@@ -35,6 +35,7 @@ describe("enemy returningHome", () => {
       board,
       enemy,
       playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
+      playerDirection: "left",
       deltaMs: 500,
       nextRandom: createDeterministicRandom([0.2])
     });

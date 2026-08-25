@@ -106,9 +106,13 @@ const enemyGlyph = (enemy: Enemy): string => {
     return "H";
   }
 
+  if (enemy.strategyId === "ambush") {
+    return "A";
+  }
+
   if (enemy.strategyId === "patrol") {
     return "P";
   }
 
-  return "R";
+  return "N";
 };

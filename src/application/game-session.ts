@@ -111,6 +111,7 @@ export const advanceGameSession = (
       board: state.board,
       enemy,
       playerPosition: player.position,
+      playerDirection: player.currentDirection,
       deltaMs,
       nextRandom
     })
@@ -214,6 +215,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   },
   enemies: state.enemies.map((enemy) => ({
     id: enemy.id,
+    strategyId: enemy.strategyId,
     position: enemy.position,
     currentDirection: enemy.currentDirection,
     behaviorMode: enemy.behaviorMode,

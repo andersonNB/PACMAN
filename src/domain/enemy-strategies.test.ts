@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ambushStrategy,
   chasePlayerStrategy,
   fleeStrategy,
   patrolStrategy,
@@ -14,6 +15,7 @@ const createContext = (overrides: Partial<EnemyDecisionContext> = {}): EnemyDeci
   currentDirection: "left",
   availableDirections: ["up", "left", "right"],
   playerTile: { row: 1, column: 3 },
+  playerDirection: "right",
   homeTile: { row: 5, column: 1 },
   scatterTargetTile: { row: 5, column: 5 },
   randomValue: 0.75,
@@ -27,6 +29,19 @@ describe("enemy strategies", () => {
 
   it("chase strategy picks the direction that gets closer to the player", () => {
     expect(chasePlayerStrategy.chooseDirection(createContext())).toBe("up");
+  });
+
+  it("ambush strategy targets tiles ahead of the player direction", () => {
+    expect(
+      ambushStrategy.chooseDirection(
+        createContext({
+          currentTile: { row: 4, column: 2 },
+          availableDirections: ["up", "right", "left"],
+          playerTile: { row: 4, column: 4 },
+          playerDirection: "up"
+        })
+      )
+    ).toBe("up");
   });
 
   it("patrol strategy heads toward the scatter target", () => {

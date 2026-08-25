@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createBoard, createTilePosition, type LevelDefinition } from "./board.js";
-import { advanceEnemy, createDeterministicRandom, createEnemy, detectEnemyCollision } from "./enemy.js";
+import { advanceEnemy, createDeterministicRandom, createEnemy, createEnemies, detectEnemyCollision } from "./enemy.js";
 import { tileToWorldPosition } from "./player.js";
 
 const ENEMY_LEVEL: LevelDefinition = {
@@ -34,33 +34,59 @@ describe("enemy movement", () => {
       board,
       enemy,
       playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
+      playerDirection: "left",
       deltaMs: 500,
       nextRandom: createDeterministicRandom([0.2])
     });
 
-    expect(movedEnemy.position).toEqual({ x: 2.5, y: 5.5 });
+    expect(movedEnemy.position).toEqual({ x: 1.5, y: 4.5 });
   });
 
   it("avoids reversing direction when there are alternatives", () => {
     const enemy = createEnemy({
       id: "enemy-1",
-      spawnTile: createTilePosition(3, 2),
+      spawnTile: createTilePosition(3, 1),
       velocity: { unitsPerSecond: 2 },
       strategyId: "random",
+      behaviorMode: "chase",
       scatterTargetTile: createTilePosition(1, 5),
-      initialDirection: "left"
+      initialDirection: "up"
     });
 
     const movedEnemy = advanceEnemy({
       board,
       enemy,
       playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
+      playerDirection: "left",
       deltaMs: 500,
       nextRandom: createDeterministicRandom([0.9])
     });
 
     expect(movedEnemy.currentDirection).toBe("right");
-    expect(movedEnemy.position).toEqual({ x: 3.5, y: 3.5 });
+    expect(movedEnemy.position).toEqual({ x: 2.5, y: 3.5 });
+  });
+
+  it("assigns a four-ghost roster with distinct roles when the board provides four spawns", () => {
+    const rosterBoard = createBoard({
+      id: "phase-15-roster",
+      rows: [
+        "#########",
+        "#P......#",
+        "#.......#",
+        "#.EEEE..#",
+        "#########"
+      ]
+    });
+
+    const enemies = createEnemies(rosterBoard, { unitsPerSecond: 2 });
+
+    expect(enemies.map((enemy) => enemy.strategyId)).toEqual(["chase", "ambush", "patrol", "random"]);
+    expect(enemies.map((enemy) => enemy.scatterTargetTile)).toEqual([
+      { row: 1, column: 7 },
+      { row: 1, column: 1 },
+      { row: 3, column: 7 },
+      { row: 3, column: 1 }
+    ]);
   });
 });
 
