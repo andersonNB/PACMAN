@@ -34,6 +34,8 @@ const COLORS = {
   patrol: "#50e4ff",
   random: "#ff9b3d",
   frightened: "#2f63ff",
+  frightenedFlash: "#f3f6ff",
+  pupil: "#102b72",
   debug: "rgba(150, 175, 204, 0.22)"
 } as const;
 
@@ -142,8 +144,9 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawBoard(context, board);
-    drawCollectibles(context, snapshot.collectibles);
-    drawEnemies(context, previousSnapshot, snapshot, alpha);
+    const presentationTimeMs = performance.now();
+    drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
+    drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
     drawPlayer(context, previousSnapshot, snapshot, alpha);
 
     if (debugEnabled) {
@@ -247,7 +250,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 15 Four Ghost Roster</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 16 Arcade Visual States</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
@@ -406,14 +409,21 @@ const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof c
 
 const drawCollectibles = (
   context: CanvasRenderingContext2D,
-  collectibles: ReturnType<typeof toGameSnapshot>["collectibles"]
+  collectibles: ReturnType<typeof toGameSnapshot>["collectibles"],
+  presentationTimeMs: number
 ): void => {
   collectibles.forEach((collectible) => {
     if (!collectible.active) {
       return;
     }
 
-    const radius = collectible.kind === "powerPellet" ? 5 : 3;
+    const powerPelletVisible = collectible.kind !== "powerPellet" || Math.floor(presentationTimeMs / 220) % 2 === 0;
+
+    if (!powerPelletVisible) {
+      return;
+    }
+
+    const radius = collectible.kind === "powerPellet" ? 6 : 3;
     const centerX = collectible.tile.column * TILE_SIZE + TILE_SIZE / 2;
     const centerY = collectible.tile.row * TILE_SIZE + TILE_SIZE / 2;
 
@@ -453,17 +463,21 @@ const drawEnemies = (
   context: CanvasRenderingContext2D,
   previousSnapshot: ReturnType<typeof toGameSnapshot>,
   currentSnapshot: ReturnType<typeof toGameSnapshot>,
-  alpha: number
+  alpha: number,
+  presentationTimeMs: number
 ): void => {
   currentSnapshot.enemies.forEach((enemy) => {
     const previousEnemy = previousSnapshot.enemies.find((candidate) => candidate.id === enemy.id) ?? enemy;
     const position = interpolatePosition(previousEnemy.position, enemy.position, alpha);
-    const color = enemy.navigationState === "returningHome"
-      ? "#dfe8ff"
-      : enemy.navigationState === "leavingHome"
+    const isFrightened = enemy.behaviorMode === "frightened";
+    const shouldFlash = isFrightened
+      && currentSnapshot.frightenedTimerMs !== null
+      && currentSnapshot.frightenedTimerMs <= 1800
+      && Math.floor(presentationTimeMs / 140) % 2 === 0;
+    const color = enemy.navigationState === "leavingHome"
       ? "#9fe0ff"
-      : enemy.behaviorMode === "frightened"
-      ? COLORS.frightened
+      : isFrightened
+      ? shouldFlash ? COLORS.frightenedFlash : COLORS.frightened
       : enemy.strategyId === "chase"
         ? COLORS.chase
         : enemy.strategyId === "ambush"
@@ -472,31 +486,48 @@ const drawEnemies = (
             ? COLORS.random
             : "#7fe07f";
 
-    drawGhost(context, position.x * TILE_SIZE, position.y * TILE_SIZE, color);
+    drawGhost(context, position.x * TILE_SIZE, position.y * TILE_SIZE, {
+      color,
+      direction: enemy.currentDirection,
+      frightened: isFrightened,
+      returningHome: enemy.navigationState === "returningHome"
+    });
   });
 };
 
-const drawGhost = (context: CanvasRenderingContext2D, centerX: number, centerY: number, color: string): void => {
+const drawGhost = (
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  visualState: Readonly<{
+    color: string;
+    direction: Direction;
+    frightened: boolean;
+    returningHome: boolean;
+  }>
+): void => {
   const width = TILE_SIZE * 0.74;
   const height = TILE_SIZE * 0.72;
   const left = centerX - width / 2;
   const top = centerY - height / 2;
   const bottom = top + height;
 
-  context.beginPath();
-  context.moveTo(left, bottom);
-  context.lineTo(left, top + height * 0.46);
-  context.quadraticCurveTo(left, top, centerX, top);
-  context.quadraticCurveTo(left + width, top, left + width, top + height * 0.46);
-  context.lineTo(left + width, bottom);
-  context.lineTo(left + width * 0.82, bottom - 5);
-  context.lineTo(left + width * 0.64, bottom);
-  context.lineTo(left + width * 0.5, bottom - 5);
-  context.lineTo(left + width * 0.36, bottom);
-  context.lineTo(left + width * 0.18, bottom - 5);
-  context.closePath();
-  context.fillStyle = color;
-  context.fill();
+  if (!visualState.returningHome) {
+    context.beginPath();
+    context.moveTo(left, bottom);
+    context.lineTo(left, top + height * 0.46);
+    context.quadraticCurveTo(left, top, centerX, top);
+    context.quadraticCurveTo(left + width, top, left + width, top + height * 0.46);
+    context.lineTo(left + width, bottom);
+    context.lineTo(left + width * 0.82, bottom - 5);
+    context.lineTo(left + width * 0.64, bottom);
+    context.lineTo(left + width * 0.5, bottom - 5);
+    context.lineTo(left + width * 0.36, bottom);
+    context.lineTo(left + width * 0.18, bottom - 5);
+    context.closePath();
+    context.fillStyle = visualState.color;
+    context.fill();
+  }
 
   context.fillStyle = "#ffffff";
   context.beginPath();
@@ -504,11 +535,40 @@ const drawGhost = (context: CanvasRenderingContext2D, centerX: number, centerY: 
   context.arc(centerX + 7, centerY - 2, 5, 0, Math.PI * 2);
   context.fill();
 
-  context.fillStyle = "#07111f";
+  const pupilOffset = directionToPupilOffset(visualState.direction);
+  context.fillStyle = COLORS.pupil;
   context.beginPath();
-  context.arc(centerX - 6, centerY - 1, 2.2, 0, Math.PI * 2);
-  context.arc(centerX + 6, centerY - 1, 2.2, 0, Math.PI * 2);
+  context.arc(centerX - 7 + pupilOffset.x, centerY - 2 + pupilOffset.y, 2.35, 0, Math.PI * 2);
+  context.arc(centerX + 7 + pupilOffset.x, centerY - 2 + pupilOffset.y, 2.35, 0, Math.PI * 2);
   context.fill();
+
+  if (visualState.frightened && !visualState.returningHome) {
+    context.strokeStyle = visualState.color === COLORS.frightenedFlash ? COLORS.frightened : "#f3f6ff";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(centerX - 9, centerY + 9);
+    context.lineTo(centerX - 5, centerY + 6);
+    context.lineTo(centerX - 1, centerY + 9);
+    context.lineTo(centerX + 3, centerY + 6);
+    context.lineTo(centerX + 7, centerY + 9);
+    context.stroke();
+  }
+};
+
+const directionToPupilOffset = (direction: Direction): { x: number; y: number } => {
+  if (direction === "up") {
+    return { x: 0, y: -2 };
+  }
+
+  if (direction === "down") {
+    return { x: 0, y: 2 };
+  }
+
+  if (direction === "left") {
+    return { x: -2, y: 0 };
+  }
+
+  return { x: 2, y: 0 };
 };
 
 const drawDebugGrid = (context: CanvasRenderingContext2D, columns: number, rows: number): void => {

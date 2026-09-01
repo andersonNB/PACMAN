@@ -529,3 +529,9 @@ Regla:
 - El demo ya contiene cuatro fantasmas con liberacion progresiva desde la casa.
 - El dominio incorpora una estrategia `ambush` simple usando la direccion actual del jugador.
 - El snapshot y los adaptadores visuales distinguen mejor el rol de cada fantasma, facilitando comparacion con el reparto arcade.
+
+## 25. Fase 16 implementada
+
+- El canvas representa estados arcade sin contaminar el dominio: los power pellets parpadean y los fantasmas vulnerables alternan azul/blanco cerca del timeout.
+- Las pupilas siguen la direccion publicada en el snapshot y los fantasmas que regresan a casa se renderizan solo como ojos.
+- Estas animaciones usan el reloj de presentacion y son derivadas; la simulacion fija y sus tests permanecen deterministas.

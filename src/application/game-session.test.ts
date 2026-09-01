@@ -62,8 +62,8 @@ describe("game session states", () => {
   it("enters playerDying and returns to running after the respawn delay", () => {
     let state = createSession();
 
-    state = requestDirectionForSession(state, "right");
-    state = advanceGameSession(state, 1500, createDeterministicRandom([0, 0]));
+    state = placeDangerousEnemyOnPlayer(state);
+    state = advanceGameSession(state, 0, createDeterministicRandom([0]));
 
     expect(state.status).toBe("playerDying");
     expect(state.lives.value).toBe(1);
@@ -77,11 +77,11 @@ describe("game session states", () => {
   it("reaches gameOver when the player loses the last life", () => {
     let state = createSession();
 
-    state = requestDirectionForSession(state, "right");
-    state = advanceGameSession(state, 1500, createDeterministicRandom([0, 0]));
+    state = placeDangerousEnemyOnPlayer(state);
+    state = advanceGameSession(state, 0, createDeterministicRandom([0]));
     state = advanceGameSession(state, 1000, createDeterministicRandom([0, 0]));
-    state = requestDirectionForSession(state, "right");
-    state = advanceGameSession(state, 1500, createDeterministicRandom([0, 0]));
+    state = placeDangerousEnemyOnPlayer(state);
+    state = advanceGameSession(state, 0, createDeterministicRandom([0]));
 
     expect(state.status).toBe("gameOver");
     expect(state.lives.value).toBe(0);
@@ -116,4 +116,18 @@ describe("game session states", () => {
 
     expect(state.status).toBe("victory");
   });
+});
+
+const placeDangerousEnemyOnPlayer = (state: ReturnType<typeof createSession>): ReturnType<typeof createSession> => ({
+  ...state,
+  enemies: state.enemies.map((enemy, index) =>
+    index === 0
+      ? {
+          ...enemy,
+          position: state.player.position,
+          behaviorMode: "chase",
+          navigationState: "outside"
+        }
+      : enemy
+  )
 });
