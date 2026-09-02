@@ -135,11 +135,8 @@ export const advanceGameSession = (
 
     return {
       ...state,
-      player: createPlayer({
-        spawnTile: state.board.playerSpawn,
-        velocity: state.player.velocity
-      }),
-      enemies: createEnemies(state.board, state.enemies[0]?.velocity ?? { unitsPerSecond: 1 }),
+      player,
+      enemies,
       lives: { value: Math.max(remainingLives, 0) },
       status: remainingLives <= 0 ? "gameOver" : "playerDying",
       phaseTimerMs: remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
@@ -203,6 +200,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   tick: state.tick,
   score: state.score.value,
   lives: state.lives.value,
+  phaseTimerMs: state.phaseTimerMs,
   frightenedTimerMs: state.frightenedTimerMs,
   frightenedChainCount: state.frightenedChainCount,
   globalEnemyMode: state.globalEnemyMode,

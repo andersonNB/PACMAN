@@ -62,11 +62,15 @@ describe("game session states", () => {
   it("enters playerDying and returns to running after the respawn delay", () => {
     let state = createSession();
 
+    state = requestDirectionForSession(state, "right");
+    state = advanceGameSession(state, 300, createDeterministicRandom([0.2]));
+    const collisionPosition = state.player.position;
     state = placeDangerousEnemyOnPlayer(state);
     state = advanceGameSession(state, 0, createDeterministicRandom([0]));
 
     expect(state.status).toBe("playerDying");
     expect(state.lives.value).toBe(1);
+    expect(state.player.position).toEqual(collisionPosition);
 
     state = advanceGameSession(state, 1000, createDeterministicRandom([0, 0]));
 

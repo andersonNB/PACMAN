@@ -147,7 +147,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     const presentationTimeMs = performance.now();
     drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
     drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
-    drawPlayer(context, previousSnapshot, snapshot, alpha);
+    drawPlayer(context, previousSnapshot, snapshot, alpha, resolvePlayerDeathProgress(snapshot, config.sessionConfig));
 
     if (debugEnabled) {
       drawDebugGrid(context, board.width, board.height);
@@ -438,12 +438,19 @@ const drawPlayer = (
   context: CanvasRenderingContext2D,
   previousSnapshot: ReturnType<typeof toGameSnapshot>,
   currentSnapshot: ReturnType<typeof toGameSnapshot>,
-  alpha: number
+  alpha: number,
+  deathProgress: number | null
 ): void => {
   const position = interpolatePosition(previousSnapshot.player.position, currentSnapshot.player.position, alpha);
-  const mouthAngle = currentSnapshot.status === "paused" ? 0.12 : 0.25 + Math.abs(Math.sin(performance.now() / 90)) * 0.16;
+  const mouthAngle = deathProgress === null
+    ? currentSnapshot.status === "paused" ? 0.12 : 0.25 + Math.abs(Math.sin(performance.now() / 90)) * 0.16
+    : Math.min(Math.PI, 0.22 + deathProgress * Math.PI * 0.78);
   const directionAngle = directionToAngle(currentSnapshot.player.currentDirection);
-  const radius = TILE_SIZE * 0.36;
+  const radius = TILE_SIZE * 0.36 * (deathProgress === null ? 1 : 1 - deathProgress * 0.88);
+
+  if (deathProgress !== null && deathProgress >= 1) {
+    return;
+  }
 
   context.beginPath();
   context.moveTo(position.x * TILE_SIZE, position.y * TILE_SIZE);
@@ -457,6 +464,17 @@ const drawPlayer = (
   );
   context.closePath();
   context.fill();
+};
+
+const resolvePlayerDeathProgress = (
+  snapshot: ReturnType<typeof toGameSnapshot>,
+  sessionConfig: SessionConfig
+): number | null => {
+  if (snapshot.status !== "playerDying" || snapshot.phaseTimerMs === null) {
+    return null;
+  }
+
+  return Math.min(1, Math.max(0, 1 - snapshot.phaseTimerMs / sessionConfig.respawnDelayMs));
 };
 
 const drawEnemies = (
@@ -601,7 +619,7 @@ const drawStatusOverlay = (
   width: number,
   height: number
 ): void => {
-  if (status === "running") {
+  if (status === "running" || status === "playerDying") {
     return;
   }
 

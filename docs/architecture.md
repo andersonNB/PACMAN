@@ -535,3 +535,9 @@ Regla:
 - El canvas representa estados arcade sin contaminar el dominio: los power pellets parpadean y los fantasmas vulnerables alternan azul/blanco cerca del timeout.
 - Las pupilas siguen la direccion publicada en el snapshot y los fantasmas que regresan a casa se renderizan solo como ojos.
 - Estas animaciones usan el reloj de presentacion y son derivadas; la simulacion fija y sus tests permanecen deterministas.
+
+## 26. Fase 17 implementada
+
+- Al colisionar, jugador y enemigos permanecen congelados en la posicion de impacto durante `playerDying`; el reset del nivel sucede solo al finalizar el temporizador de respawn.
+- El snapshot publica `phaseTimerMs` para que el adaptador canvas represente la muerte sin introducir temporizadores duplicados.
+- El jugador cierra la boca y se reduce progresivamente en la posicion real de la colision, una transicion visual mas cercana al referente arcade.
