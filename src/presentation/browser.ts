@@ -23,6 +23,7 @@ const COLORS = {
   wall: "#3b86ff",
   wallGlow: "rgba(95, 162, 255, 0.35)",
   pellet: "#ffd86b",
+  fruit: "#ff456f",
   player: "#ffd400",
   tunnel: "#173b6f",
   ghostHouse: "#182c4e",
@@ -423,6 +424,11 @@ const drawCollectibles = (
       return;
     }
 
+    if (collectible.kind === "fruit") {
+      drawFruit(context, collectible.tile.column * TILE_SIZE + TILE_SIZE / 2, collectible.tile.row * TILE_SIZE + TILE_SIZE / 2);
+      return;
+    }
+
     const radius = collectible.kind === "powerPellet" ? 6 : 3;
     const centerX = collectible.tile.column * TILE_SIZE + TILE_SIZE / 2;
     const centerY = collectible.tile.row * TILE_SIZE + TILE_SIZE / 2;
@@ -432,6 +438,21 @@ const drawCollectibles = (
     context.arc(centerX, centerY, radius, 0, Math.PI * 2);
     context.fill();
   });
+};
+
+const drawFruit = (context: CanvasRenderingContext2D, centerX: number, centerY: number): void => {
+  context.fillStyle = COLORS.fruit;
+  context.beginPath();
+  context.arc(centerX - 4, centerY + 2, 5, 0, Math.PI * 2);
+  context.arc(centerX + 4, centerY + 2, 5, 0, Math.PI * 2);
+  context.fill();
+
+  context.strokeStyle = "#79d96f";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(centerX, centerY - 2);
+  context.quadraticCurveTo(centerX + 2, centerY - 7, centerX + 6, centerY - 7);
+  context.stroke();
 };
 
 const drawPlayer = (

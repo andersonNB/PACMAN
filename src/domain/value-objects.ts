@@ -47,7 +47,7 @@ export type EnemyNavigationState =
   | "returningHome"
   | "enteringHome";
 
-export type CollectibleKind = "dot" | "powerPellet";
+export type CollectibleKind = "dot" | "powerPellet" | "fruit";
 
 export type TileKind =
   | "wall"

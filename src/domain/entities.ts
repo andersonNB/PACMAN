@@ -15,7 +15,7 @@ import type {
 export type BoardTile = Readonly<{
   position: TilePosition;
   kind: TileKind;
-  marker: "." | "o" | null;
+  marker: "." | "o" | "F" | null;
 }>;
 
 export type Collectible = Readonly<{
@@ -67,6 +67,7 @@ export type SessionConfigState = Readonly<{
   scoring: Readonly<{
     dotPoints: number;
     powerPelletPoints: number;
+    fruitPoints: number;
     enemyPoints: number;
   }>;
   respawnDelayMs: number;

@@ -28,6 +28,7 @@ let state = startGameSession(
     scoring: {
       dotPoints: 10,
       powerPelletPoints: 50,
+      fruitPoints: 100,
       enemyPoints: 200
     },
     respawnDelayMs: 1000,

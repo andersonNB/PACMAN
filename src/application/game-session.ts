@@ -297,7 +297,8 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   }),
   collectibles: createCollectiblesFromBoard(board, {
     dotPoints: sessionConfig.scoring.dotPoints,
-    powerPelletPoints: sessionConfig.scoring.powerPelletPoints
+    powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
+    fruitPoints: sessionConfig.scoring.fruitPoints
   }),
   score: { value: 0 },
   lives: { value: sessionConfig.initialLives },
@@ -324,6 +325,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   scoring: {
     dotPoints: config.scoring.dotPoints,
     powerPelletPoints: config.scoring.powerPelletPoints,
+    fruitPoints: config.scoring.fruitPoints,
     enemyPoints: config.scoring.enemyPoints
   },
   respawnDelayMs: config.respawnDelayMs,

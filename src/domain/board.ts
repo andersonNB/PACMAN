@@ -6,6 +6,7 @@ export type LevelSymbol =
   | "#"
   | "."
   | "o"
+  | "F"
   | "P"
   | "E"
   | "T"
@@ -22,6 +23,7 @@ const TILE_KIND_BY_SYMBOL: Readonly<Record<LevelSymbol, TileKind>> = {
   "#": "wall",
   ".": "path",
   o: "path",
+  F: "path",
   P: "path",
   E: "path",
   T: "tunnel",
@@ -75,7 +77,7 @@ export const createBoard = (level: LevelDefinition): Board => {
       tiles.push({
         position,
         kind: TILE_KIND_BY_SYMBOL[parsedSymbol],
-        marker: parsedSymbol === "." || parsedSymbol === "o" ? parsedSymbol : null
+        marker: parsedSymbol === "." || parsedSymbol === "o" || parsedSymbol === "F" ? parsedSymbol : null
       });
     });
   });
@@ -250,6 +252,7 @@ const parseLevelSymbol = (symbol: string): LevelSymbol => {
     symbol === "#" ||
     symbol === "." ||
     symbol === "o" ||
+    symbol === "F" ||
     symbol === "P" ||
     symbol === "E" ||
     symbol === "T" ||

@@ -8,7 +8,7 @@ const LEVEL: LevelDefinition = {
   id: "phase-3-collectibles",
   rows: [
     "#######",
-    "#Po...#",
+    "#Po..F#",
     "#.###.#",
     "#...T.#",
     "#.###.#",
@@ -21,7 +21,8 @@ describe("collectibles", () => {
   const board = createBoard(LEVEL);
   const collectibles = createCollectiblesFromBoard(board, {
     dotPoints: 10,
-    powerPelletPoints: 50
+    powerPelletPoints: 50,
+    fruitPoints: 100
   });
 
   it("creates collectibles for walkable tiles except spawns", () => {
@@ -82,5 +83,30 @@ describe("collectibles", () => {
 
     expect(result.scoreDelta).toBe(50);
     expect(result.frightenedTriggered).toBe(true);
+  });
+
+  it("collects a fruit once with its configured score", () => {
+    const result = collectAtPlayerTile({
+      collectibles,
+      playerPosition: tileToWorldPosition({ row: 1, column: 5 })
+    });
+
+    expect(result.collected.map((collectible) => collectible.kind)).toEqual(["fruit"]);
+    expect(result.scoreDelta).toBe(100);
+    expect(result.frightenedTriggered).toBe(false);
+  });
+
+  it("does not require an uncollected fruit to complete the level", () => {
+    const fruitOnly = collectibles.map((collectible) => ({
+      ...collectible,
+      active: collectible.kind === "fruit"
+    }));
+
+    const result = collectAtPlayerTile({
+      collectibles: fruitOnly,
+      playerPosition: tileToWorldPosition({ row: 1, column: 3 })
+    });
+
+    expect(result.nextStatus).toBe("levelCompleted");
   });
 });

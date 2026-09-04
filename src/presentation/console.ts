@@ -62,7 +62,7 @@ export const renderBoardState = (params: {
       );
 
       if (collectible !== undefined) {
-        rowText += collectible.kind === "powerPellet" ? "o" : ".";
+        rowText += collectible.kind === "powerPellet" ? "o" : collectible.kind === "fruit" ? "F" : ".";
         continue;
       }
 

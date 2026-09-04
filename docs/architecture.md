@@ -541,3 +541,9 @@ Regla:
 - Al colisionar, jugador y enemigos permanecen congelados en la posicion de impacto durante `playerDying`; el reset del nivel sucede solo al finalizar el temporizador de respawn.
 - El snapshot publica `phaseTimerMs` para que el adaptador canvas represente la muerte sin introducir temporizadores duplicados.
 - El jugador cierra la boca y se reduce progresivamente en la posicion real de la colision, una transicion visual mas cercana al referente arcade.
+
+## 27. Fase 18 implementada
+
+- El mapa declarativo acepta el marcador `F` para crear un bonus fruit sobre una ruta caminable.
+- El fruit se recolecta una sola vez, usa `fruitPoints` declarado en configuracion y no activa frightened.
+- El objetivo de nivel sigue dependiendo solo de dots y power pellets; un fruit que permanezca en tablero no bloquea la victoria.

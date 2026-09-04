@@ -5,6 +5,7 @@ import { worldToTilePosition } from "./player.js";
 export type CollectibleConfig = Readonly<{
   dotPoints: number;
   powerPelletPoints: number;
+  fruitPoints: number;
 }>;
 
 export type CollectibleCollectionResult = Readonly<{
@@ -24,8 +25,14 @@ export const createCollectiblesFromBoard = (
       return [];
     }
 
-    const points = tile.marker === "o" ? config.powerPelletPoints : config.dotPoints;
-    const kind = tile.marker === "o" ? "powerPellet" : "dot";
+    const points =
+      tile.marker === "o" ? config.powerPelletPoints :
+      tile.marker === "F" ? config.fruitPoints :
+      config.dotPoints;
+    const kind =
+      tile.marker === "o" ? "powerPellet" :
+      tile.marker === "F" ? "fruit" :
+      "dot";
 
     return [
       {
@@ -63,14 +70,16 @@ export const collectAtPlayerTile = (params: {
     };
   });
 
-  const remainingCollectibles = collectibles.filter((collectible) => collectible.active);
+  const remainingLevelCollectibles = collectibles.filter(
+    (collectible) => collectible.active && collectible.kind !== "fruit"
+  );
 
   return {
     collectibles,
     collected,
     scoreDelta,
     frightenedTriggered: collected.some((collectible) => collectible.kind === "powerPellet"),
-    nextStatus: remainingCollectibles.length === 0 ? "levelCompleted" : null
+    nextStatus: remainingLevelCollectibles.length === 0 ? "levelCompleted" : null
   };
 };
 
