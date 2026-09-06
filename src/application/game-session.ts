@@ -17,6 +17,7 @@ import type { Direction } from "../domain/value-objects.js";
 export type SessionConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
   enemyModeSchedule: readonly Readonly<{
@@ -35,12 +36,7 @@ export const createGameSession = (board: Board, config: SessionConfig): GameStat
   createInitialGameState(board, toSessionConfigState(config));
 
 export const startGameSession = (state: GameState): GameState =>
-  state.status === "idle"
-    ? {
-        ...state,
-        status: "running"
-      }
-    : state;
+  state.status === "idle" ? enterReadyState(state) : state;
 
 export const pauseGameSession = (state: GameState): GameState =>
   state.status === "running"
@@ -73,6 +69,10 @@ export const advanceGameSession = (
 ): GameState => {
   if (state.status === "paused" || state.status === "idle" || state.status === "gameOver" || state.status === "victory") {
     return state;
+  }
+
+  if (state.status === "ready") {
+    return advanceReadyState(state, deltaMs);
   }
 
   if (state.status === "playerDying") {
@@ -238,7 +238,7 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     };
   }
 
-  return {
+  return enterReadyState({
     ...state,
     player: createPlayer({
       spawnTile: state.board.playerSpawn,
@@ -247,8 +247,6 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     enemies: createEnemies(state.board, {
       unitsPerSecond: state.sessionConfig.enemySpeedUnitsPerSecond
     }),
-    status: "running",
-    phaseTimerMs: null,
     frightenedTimerMs: null,
     frightenedChainCount: 0,
     globalEnemyMode: state.sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
@@ -256,6 +254,38 @@ const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState =
     globalEnemyModeTimerMs: state.sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
     nextEnemyReleaseIndex: 1,
     enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
+    tick: state.tick + 1
+  });
+};
+
+const enterReadyState = (state: GameState): GameState =>
+  state.sessionConfig.readyDelayMs === 0
+    ? {
+        ...state,
+        status: "running",
+        phaseTimerMs: null
+      }
+    : {
+        ...state,
+        status: "ready",
+        phaseTimerMs: state.sessionConfig.readyDelayMs
+      };
+
+const advanceReadyState = (state: GameState, deltaMs: number): GameState => {
+  const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
+
+  if (remainingTimerMs > 0) {
+    return {
+      ...state,
+      phaseTimerMs: remainingTimerMs,
+      tick: state.tick + 1
+    };
+  }
+
+  return {
+    ...state,
+    status: "running",
+    phaseTimerMs: null,
     tick: state.tick + 1
   };
 };
@@ -319,6 +349,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   initialLives: config.initialLives,
   playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
   enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
+  readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
   enemyModeSchedule: config.enemyModeSchedule,

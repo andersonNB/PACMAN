@@ -547,3 +547,9 @@ Regla:
 - El mapa declarativo acepta el marcador `F` para crear un bonus fruit sobre una ruta caminable.
 - El fruit se recolecta una sola vez, usa `fruitPoints` declarado en configuracion y no activa frightened.
 - El objetivo de nivel sigue dependiendo solo de dots y power pellets; un fruit que permanezca en tablero no bloquea la victoria.
+
+## 28. Fase 19 implementada
+
+- La FSM incorpora el estado `ready`, que congela la simulacion antes del inicio de cada ronda y despues de un respawn.
+- `readyDelayMs` es una configuracion opcional: el dominio conserva compatibilidad con `0` ms y el demo usa una pausa visible de 1.8 segundos.
+- El canvas muestra `READY!` en amarillo sobre el tablero, acercando el flujo inicial al ritmo del arcade clasico.

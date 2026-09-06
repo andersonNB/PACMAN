@@ -49,6 +49,28 @@ const createSession = () =>
   );
 
 describe("game session states", () => {
+  it("holds the round in ready until its configured delay expires", () => {
+    const idleState = createGameSession(createBoard(LEVEL), {
+      playerSpeedUnitsPerSecond: 2,
+      enemySpeedUnitsPerSecond: 2,
+      readyDelayMs: 500,
+      frightenedDurationMs: 1200,
+      enemyReleaseScheduleMs: [1000, 1000],
+      enemyModeSchedule: [],
+      initialLives: 2,
+      scoring: { dotPoints: 10, powerPelletPoints: 50, fruitPoints: 100, enemyPoints: 200 },
+      respawnDelayMs: 1000,
+      levelCompletedDelayMs: 1000
+    });
+    const readyState = startGameSession(idleState);
+    const waitingState = advanceGameSession(readyState, 400, createDeterministicRandom([0.2]));
+    const runningState = advanceGameSession(waitingState, 100, createDeterministicRandom([0.2]));
+
+    expect(readyState.status).toBe("ready");
+    expect(waitingState.status).toBe("ready");
+    expect(runningState.status).toBe("running");
+  });
+
   it("pauses and resumes only through explicit transitions", () => {
     const runningState = createSession();
     const pausedState = pauseGameSession(runningState);

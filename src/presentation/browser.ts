@@ -140,6 +140,8 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     livesValue.textContent = String(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
       ? "Press Enter to start"
+      : snapshot.status === "ready"
+        ? "Get ready"
       : "Arrows/WASD move | Space pause | R restart | Tab debug";
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
@@ -647,7 +649,7 @@ const drawStatusOverlay = (
   const label = humanizeStatus(status);
   context.fillStyle = "rgba(4, 9, 18, 0.56)";
   context.fillRect(0, 0, width, height);
-  context.fillStyle = COLORS.text;
+  context.fillStyle = status === "ready" ? COLORS.player : COLORS.text;
   context.font = '700 32px "Trebuchet MS", sans-serif';
   context.textAlign = "center";
   context.fillText(label, width / 2, height / 2);
@@ -722,6 +724,10 @@ const directionToAngle = (direction: Direction): number => {
 const humanizeStatus = (status: ReturnType<typeof toGameSnapshot>["status"]): string => {
   if (status === "idle") {
     return "Idle";
+  }
+
+  if (status === "ready") {
+    return "READY!";
   }
 
   if (status === "running") {

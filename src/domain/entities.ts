@@ -58,6 +58,7 @@ export type SessionConfigState = Readonly<{
   initialLives: number;
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
   enemyModeSchedule: readonly Readonly<{

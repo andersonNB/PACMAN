@@ -30,6 +30,7 @@ export type LivesValue = Readonly<{
 
 export type GameStatus =
   | "idle"
+  | "ready"
   | "running"
   | "paused"
   | "playerDying"
