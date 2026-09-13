@@ -5,7 +5,8 @@ import {
   chasePlayerStrategy,
   fleeStrategy,
   patrolStrategy,
-  randomMovementStrategy
+  randomMovementStrategy,
+  vectorStrategy
 } from "./enemy-strategies.js";
 import type { EnemyDecisionContext } from "./services.js";
 
@@ -46,6 +47,18 @@ describe("enemy strategies", () => {
 
   it("patrol strategy heads toward the scatter target", () => {
     expect(patrolStrategy.chooseDirection(createContext())).toBe("right");
+  });
+
+  it("vector strategy chases from far away and retreats to its corner when close", () => {
+    const context = createContext({
+      currentTile: { row: 10, column: 3 },
+      availableDirections: ["up", "left", "right"],
+      playerTile: { row: 1, column: 3 },
+      scatterTargetTile: { row: 10, column: 0 }
+    });
+
+    expect(vectorStrategy.chooseDirection(context)).toBe("up");
+    expect(vectorStrategy.chooseDirection({ ...context, playerTile: { row: 10, column: 4 } })).toBe("left");
   });
 
   it("flee strategy moves away from the player", () => {

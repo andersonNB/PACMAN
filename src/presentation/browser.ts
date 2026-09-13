@@ -32,8 +32,9 @@ const COLORS = {
   text: "#f4f8ff",
   muted: "#96afcc",
   chase: "#ff5e7e",
+  ambush: "#ff91bd",
   patrol: "#50e4ff",
-  random: "#ff9b3d",
+  vector: "#ff9b3d",
   frightened: "#2f63ff",
   frightenedFlash: "#f3f6ff",
   pupil: "#102b72",
@@ -521,11 +522,13 @@ const drawEnemies = (
       ? shouldFlash ? COLORS.frightenedFlash : COLORS.frightened
       : enemy.strategyId === "chase"
         ? COLORS.chase
-        : enemy.strategyId === "ambush"
-          ? COLORS.patrol
+      : enemy.strategyId === "ambush"
+          ? COLORS.ambush
           : enemy.strategyId === "patrol"
-            ? COLORS.random
-            : "#7fe07f";
+            ? COLORS.patrol
+            : enemy.strategyId === "vector"
+              ? COLORS.vector
+              : "#7fe07f";
 
     drawGhost(context, position.x * TILE_SIZE, position.y * TILE_SIZE, {
       color,

@@ -38,6 +38,18 @@ export const patrolStrategy: EnemyMovementStrategy = {
     context.currentDirection
 };
 
+export const vectorStrategy: EnemyMovementStrategy = {
+  id: "vector",
+  chooseDirection: (context) => {
+    const target = manhattanDistance(context.currentTile, context.playerTile) >= 8
+      ? context.playerTile
+      : context.scatterTargetTile;
+
+    return chooseDirectionByTarget(context.availableDirections, context.currentTile, target, "nearest") ??
+      context.currentDirection;
+  }
+};
+
 export const fleeStrategy: EnemyMovementStrategy = {
   id: "flee",
   chooseDirection: (context) =>
@@ -50,6 +62,7 @@ export const enemyStrategies: Readonly<Record<string, EnemyMovementStrategy>> = 
   chase: chasePlayerStrategy,
   ambush: ambushStrategy,
   patrol: patrolStrategy,
+  vector: vectorStrategy,
   flee: fleeStrategy
 };
 

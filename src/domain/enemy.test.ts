@@ -80,7 +80,7 @@ describe("enemy movement", () => {
 
     const enemies = createEnemies(rosterBoard, { unitsPerSecond: 2 });
 
-    expect(enemies.map((enemy) => enemy.strategyId)).toEqual(["chase", "ambush", "patrol", "random"]);
+    expect(enemies.map((enemy) => enemy.strategyId)).toEqual(["chase", "ambush", "patrol", "vector"]);
     expect(enemies.map((enemy) => enemy.scatterTargetTile)).toEqual([
       { row: 1, column: 7 },
       { row: 1, column: 1 },

@@ -436,7 +436,7 @@ Regla:
 - Entregable base:
   - cuarto enemigo activo en el nivel demo
   - estrategia `ambush` basada en tiles por delante del jugador
-  - asignacion explicita de roles `chase`, `ambush`, `patrol` y `random`
+  - asignacion explicita de roles `chase`, `ambush`, `patrol` y `vector`
   - corners de `scatter` diferenciados por fantasma
   - visualizacion/debug mostrando mejor el rol real de cada enemigo
 
@@ -553,3 +553,9 @@ Regla:
 - La FSM incorpora el estado `ready`, que congela la simulacion antes del inicio de cada ronda y despues de un respawn.
 - `readyDelayMs` es una configuracion opcional: el dominio conserva compatibilidad con `0` ms y el demo usa una pausa visible de 1.8 segundos.
 - El canvas muestra `READY!` en amarillo sobre el tablero, acercando el flujo inicial al ritmo del arcade clasico.
+
+## 29. Fase 20 implementada
+
+- El cuarto fantasma del roster usa ahora la estrategia `vector`: persigue al jugador cuando esta lejos y se repliega a su esquina de scatter cuando se acerca a ocho tiles.
+- La decision recibe solo el contexto inmutable ya disponible y conserva el contrato `EnemyMovementStrategy`.
+- El canvas asigna colores reconocibles a los cuatro roles: rojo, rosa, cyan y naranja; la consola muestra `V` para el cuarto rol.

@@ -53,7 +53,7 @@ export const createEnemies = (board: Board, velocity: Velocity): readonly Enemy[
       index === 0 ? "chase" :
       index === 1 ? "ambush" :
       index === 2 ? "patrol" :
-      "random";
+      "vector";
     const scatterTargetTile =
       index === 0 ? { row: 1, column: board.width - 2 } :
       index === 1 ? { row: 1, column: 1 } :

@@ -114,5 +114,9 @@ const enemyGlyph = (enemy: Enemy): string => {
     return "P";
   }
 
+  if (enemy.strategyId === "vector") {
+    return "V";
+  }
+
   return "N";
 };
