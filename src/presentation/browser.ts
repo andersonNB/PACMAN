@@ -17,6 +17,13 @@ import type { Direction } from "../domain/value-objects.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
+const SCORE_POPUP_DURATION_MS = 700;
+
+type ScorePopup = Readonly<{
+  score: number;
+  position: { x: number; y: number };
+  startedAtMs: number;
+}>;
 
 const COLORS = {
   background: "#07111f",
@@ -58,6 +65,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   let animationFrameId = 0;
   let scoreWasPersisted = false;
   let debugEnabled = false;
+  let scorePopups: readonly ScorePopup[] = [];
 
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -107,6 +115,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
       state = restartGameSession(state);
       previousState = state;
       scoreWasPersisted = false;
+      scorePopups = [];
       return;
     }
 
@@ -128,6 +137,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
         state = startGameSession(restartGameSession(state));
         previousState = state;
         scoreWasPersisted = false;
+        scorePopups = [];
       }
     }
   };
@@ -152,6 +162,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
     drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
     drawPlayer(context, previousSnapshot, snapshot, alpha, resolvePlayerDeathProgress(snapshot, config.sessionConfig));
+    drawScorePopups(context, scorePopups, presentationTimeMs);
 
     if (debugEnabled) {
       drawDebugGrid(context, board.width, board.height);
@@ -168,8 +179,14 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     while (accumulator >= FIXED_TICK_MS) {
       previousState = state;
       state = advanceGameSession(state, FIXED_TICK_MS, nextRandom);
+      scorePopups = [
+        ...scorePopups,
+        ...createScorePopups(toGameSnapshot(previousState), toGameSnapshot(state), config.sessionConfig, time)
+      ];
       accumulator -= FIXED_TICK_MS;
     }
+
+    scorePopups = scorePopups.filter((popup) => time - popup.startedAtMs < SCORE_POPUP_DURATION_MS);
 
     const status = state.status;
 
@@ -456,6 +473,78 @@ const drawFruit = (context: CanvasRenderingContext2D, centerX: number, centerY: 
   context.moveTo(centerX, centerY - 2);
   context.quadraticCurveTo(centerX + 2, centerY - 7, centerX + 6, centerY - 7);
   context.stroke();
+};
+
+const drawScorePopups = (
+  context: CanvasRenderingContext2D,
+  scorePopups: readonly ScorePopup[],
+  presentationTimeMs: number
+): void => {
+  context.save();
+  context.font = '700 14px "Trebuchet MS", sans-serif';
+  context.textAlign = "center";
+
+  scorePopups.forEach((popup) => {
+    const progress = Math.min(1, (presentationTimeMs - popup.startedAtMs) / SCORE_POPUP_DURATION_MS);
+    context.globalAlpha = 1 - progress;
+    context.fillStyle = COLORS.text;
+    context.fillText(
+      String(popup.score),
+      popup.position.x * TILE_SIZE,
+      popup.position.y * TILE_SIZE - progress * TILE_SIZE
+    );
+  });
+
+  context.restore();
+};
+
+const createScorePopups = (
+  previousSnapshot: ReturnType<typeof toGameSnapshot>,
+  currentSnapshot: ReturnType<typeof toGameSnapshot>,
+  sessionConfig: SessionConfig,
+  startedAtMs: number
+): readonly ScorePopup[] => {
+  const collectiblePopups = previousSnapshot.collectibles.flatMap((previousCollectible) => {
+    const currentCollectible = currentSnapshot.collectibles.find((candidate) => candidate.id === previousCollectible.id);
+
+    if (!previousCollectible.active || currentCollectible?.active !== false) {
+      return [];
+    }
+
+    return [{
+      score: scoreForCollectible(previousCollectible.kind, sessionConfig),
+      position: { x: previousCollectible.tile.column + 0.5, y: previousCollectible.tile.row + 0.5 },
+      startedAtMs
+    } satisfies ScorePopup];
+  });
+  const eatenEnemies = currentSnapshot.enemies.filter((enemy) => {
+    const previousEnemy = previousSnapshot.enemies.find((candidate) => candidate.id === enemy.id);
+    return previousEnemy?.navigationState !== "returningHome" && enemy.navigationState === "returningHome";
+  });
+
+  return [
+    ...collectiblePopups,
+    ...eatenEnemies.map((enemy, index) => ({
+      score: sessionConfig.scoring.enemyPoints * 2 ** (previousSnapshot.frightenedChainCount + index),
+      position: enemy.position,
+      startedAtMs
+    } satisfies ScorePopup))
+  ];
+};
+
+const scoreForCollectible = (
+  kind: ReturnType<typeof toGameSnapshot>["collectibles"][number]["kind"],
+  sessionConfig: SessionConfig
+): number => {
+  if (kind === "powerPellet") {
+    return sessionConfig.scoring.powerPelletPoints;
+  }
+
+  if (kind === "fruit") {
+    return sessionConfig.scoring.fruitPoints;
+  }
+
+  return sessionConfig.scoring.dotPoints;
 };
 
 const drawPlayer = (

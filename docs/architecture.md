@@ -559,3 +559,9 @@ Regla:
 - El cuarto fantasma del roster usa ahora la estrategia `vector`: persigue al jugador cuando esta lejos y se repliega a su esquina de scatter cuando se acerca a ocho tiles.
 - La decision recibe solo el contexto inmutable ya disponible y conserva el contrato `EnemyMovementStrategy`.
 - El canvas asigna colores reconocibles a los cuatro roles: rojo, rosa, cyan y naranja; la consola muestra `V` para el cuarto rol.
+
+## 30. Fase 21 implementada
+
+- El adaptador canvas compara snapshots fijos consecutivos para derivar popups de score en dots, pellets, fruit y fantasmas comidos.
+- Los popups son estado efimero de presentacion con desplazamiento y desvanecimiento; no modifican el agregado ni el replay determinista.
+- La puntuacion de enemigos respeta la racha frightened publicada en los snapshots para mostrar `200`, `400`, `800` y sucesivos valores.
