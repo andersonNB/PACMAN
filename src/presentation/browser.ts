@@ -66,6 +66,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   let scoreWasPersisted = false;
   let debugEnabled = false;
   let scorePopups: readonly ScorePopup[] = [];
+  let highScore = 0;
 
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -86,6 +87,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   const frame = createFrameElement(canvas, config.root);
   const statusValue = getElement(frame, "status-value");
   const scoreValue = getElement(frame, "score-value");
+  const highScoreValue = getElement(frame, "high-score-value");
   const livesValue = getElement(frame, "lives-value");
   const hintValue = getElement(frame, "hint-value");
   const rankingValue = getElement(frame, "ranking-value");
@@ -148,7 +150,9 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
     statusValue.textContent = humanizeStatus(snapshot.status);
     scoreValue.textContent = String(snapshot.score);
-    livesValue.textContent = String(snapshot.lives);
+    highScore = Math.max(highScore, snapshot.score);
+    highScoreValue.textContent = String(highScore);
+    livesValue.innerHTML = renderLives(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
       ? "Press Enter to start"
       : snapshot.status === "ready"
@@ -229,10 +233,13 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   async function refreshRanking(): Promise<void> {
     if (config.scoreRepository === undefined) {
       rankingValue.innerHTML = "<div>No score repository configured.</div>";
+      highScoreValue.textContent = String(highScore);
       return;
     }
 
     const entries = await config.scoreRepository.listTop(5);
+    highScore = Math.max(highScore, ...entries.map((entry) => entry.score));
+    highScoreValue.textContent = String(highScore);
     rankingValue.innerHTML = renderRanking(entries);
   }
 };
@@ -271,10 +278,10 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 16 Arcade Visual States</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 22 Arcade HUD</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3, minmax(90px, 1fr));gap:12px;min-width:min(100%, 360px);">
+      <div style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
         <div style="padding:12px 14px;border-radius:16px;background:rgba(18,35,62,0.7);border:1px solid rgba(136,196,255,0.18);">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#96afcc;">Status</div>
           <div data-role="status-value" style="margin-top:6px;font-size:18px;font-weight:700;">Idle</div>
@@ -284,8 +291,12 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
           <div data-role="score-value" style="margin-top:6px;font-size:18px;font-weight:700;">0</div>
         </div>
         <div style="padding:12px 14px;border-radius:16px;background:rgba(18,35,62,0.7);border:1px solid rgba(136,196,255,0.18);">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#96afcc;">High Score</div>
+          <div data-role="high-score-value" style="margin-top:6px;font-size:18px;font-weight:700;">0</div>
+        </div>
+        <div style="padding:12px 14px;border-radius:16px;background:rgba(18,35,62,0.7);border:1px solid rgba(136,196,255,0.18);">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#96afcc;">Lives</div>
-          <div data-role="lives-value" style="margin-top:6px;font-size:18px;font-weight:700;">0</div>
+          <div data-role="lives-value" style="margin-top:6px;min-height:20px;display:flex;align-items:center;gap:5px;">0</div>
         </div>
       </div>
     </div>
@@ -373,6 +384,16 @@ const renderRanking = (entries: readonly ScoreEntry[]): string => {
       </div>`
     )
     .join("");
+};
+
+const renderLives = (lives: number): string => {
+  if (lives === 0) {
+    return '<span style="color:#96afcc;font-size:13px;">None</span>';
+  }
+
+  return Array.from({ length: lives }, () =>
+    '<span aria-label="life" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:#ffd400;clip-path:polygon(0 0,100% 35%,100% 65%,0 100%);"></span>'
+  ).join("");
 };
 
 const createDebugText = (

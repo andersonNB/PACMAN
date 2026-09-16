@@ -565,3 +565,9 @@ Regla:
 - El adaptador canvas compara snapshots fijos consecutivos para derivar popups de score en dots, pellets, fruit y fantasmas comidos.
 - Los popups son estado efimero de presentacion con desplazamiento y desvanecimiento; no modifican el agregado ni el replay determinista.
 - La puntuacion de enemigos respeta la racha frightened publicada en los snapshots para mostrar `200`, `400`, `800` y sucesivos valores.
+
+## 31. Fase 22 implementada
+
+- El HUD del adaptador visual muestra score actual, high score, estado y vidas en una sola franja de lectura rapida.
+- El high score se deriva de la partida activa y del puerto `ScoreRepository`; no introduce persistencia en el dominio.
+- Las vidas se representan como iconos de Pac-Man para acercar la interfaz al lenguaje visual del arcade.
