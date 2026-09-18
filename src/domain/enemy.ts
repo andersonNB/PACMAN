@@ -85,6 +85,14 @@ export const setEnemyNavigationState = (
   navigationState
 });
 
+export const reverseEnemyDirection = (enemy: Enemy): Enemy =>
+  enemy.navigationState === "outside"
+    ? {
+        ...enemy,
+        currentDirection: OPPOSITE_DIRECTION[enemy.currentDirection]
+      }
+    : enemy;
+
 export const releaseEnemyFromHome = (enemy: Enemy): Enemy => ({
   ...enemy,
   currentDirection: "up",

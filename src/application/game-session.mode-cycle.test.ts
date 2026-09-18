@@ -53,6 +53,7 @@ describe("game session global enemy mode", () => {
     expect(state.globalEnemyMode).toBe("chase");
     expect(state.globalEnemyModeTimerMs).toBe(1000);
     expect(state.enemies.every((enemy) => enemy.behaviorMode === "chase")).toBe(true);
+    expect(state.enemies[0]?.currentDirection).toBe("right");
   });
 
   it("pauses the scatter/chase timer while frightened is active", () => {

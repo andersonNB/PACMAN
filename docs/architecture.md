@@ -571,3 +571,9 @@ Regla:
 - El HUD del adaptador visual muestra score actual, high score, estado y vidas en una sola franja de lectura rapida.
 - El high score se deriva de la partida activa y del puerto `ScoreRepository`; no introduce persistencia en el dominio.
 - Las vidas se representan como iconos de Pac-Man para acercar la interfaz al lenguaje visual del arcade.
+
+## 32. Fase 23 implementada
+
+- Los enemigos con navegacion `outside` invierten direccion de manera atomica al alternar entre scatter/chase o al comenzar frightened.
+- La regla vive en dominio y se aplica antes del movimiento del tick, por lo que no depende del frame rate ni del renderer.
+- Enemigos dentro, saliendo o retornando a la casa no invierten, preservando la topologia y la salida escalonada.

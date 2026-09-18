@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createBoard, createTilePosition, type LevelDefinition } from "./board.js";
-import { advanceEnemy, createDeterministicRandom, createEnemy, createEnemies, detectEnemyCollision } from "./enemy.js";
+import {
+  advanceEnemy,
+  createDeterministicRandom,
+  createEnemy,
+  createEnemies,
+  detectEnemyCollision,
+  reverseEnemyDirection
+} from "./enemy.js";
 import { tileToWorldPosition } from "./player.js";
 
 const ENEMY_LEVEL: LevelDefinition = {
@@ -87,6 +94,22 @@ describe("enemy movement", () => {
       { row: 3, column: 7 },
       { row: 3, column: 1 }
     ]);
+  });
+
+  it("reverses only enemies that are outside the ghost house", () => {
+    const outsideEnemy = createEnemy({
+      id: "outside",
+      spawnTile: createTilePosition(1, 1),
+      velocity: { unitsPerSecond: 1 },
+      strategyId: "chase",
+      scatterTargetTile: createTilePosition(1, 5),
+      initialDirection: "left",
+      navigationState: "outside"
+    });
+    const insideEnemy = { ...outsideEnemy, navigationState: "insideHome" as const };
+
+    expect(reverseEnemyDirection(outsideEnemy).currentDirection).toBe("right");
+    expect(reverseEnemyDirection(insideEnemy).currentDirection).toBe("left");
   });
 });
 

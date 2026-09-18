@@ -52,6 +52,7 @@ describe("game session frightened mode", () => {
     expect(state.frightenedTimerMs).toBe(1000);
     expect(state.globalEnemyMode).toBe("scatter");
     expect(state.enemies.every((enemy) => enemy.behaviorMode === "frightened")).toBe(true);
+    expect(state.enemies[0]?.currentDirection).toBe("right");
 
     state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
 

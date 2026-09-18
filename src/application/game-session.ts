@@ -7,6 +7,7 @@ import {
   detectEnemyCollision,
   getDefaultEnemyBehaviorMode,
   markEnemyAsReturningHome,
+  reverseEnemyDirection,
   releaseEnemyFromHome,
   setEnemyBehaviorMode,
   type RandomNumberSource
@@ -105,8 +106,12 @@ export const advanceGameSession = (
   const enemiesWithCurrentMode = collectionResult.frightenedTriggered
     ? enemiesWithMode.map((enemy) => setEnemyBehaviorMode(enemy, "frightened"))
     : enemiesWithMode;
+  const shouldReverseEnemies = collectionResult.frightenedTriggered || modeProgression.mode !== state.globalEnemyMode;
+  const enemiesWithDirection = shouldReverseEnemies
+    ? enemiesWithCurrentMode.map(reverseEnemyDirection)
+    : enemiesWithCurrentMode;
 
-  const enemies = enemiesWithCurrentMode.map((enemy) =>
+  const enemies = enemiesWithDirection.map((enemy) =>
     advanceEnemy({
       board: state.board,
       enemy,
