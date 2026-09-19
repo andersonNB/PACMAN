@@ -17,6 +17,7 @@ startBrowserDemo({
     playerSpeedUnitsPerSecond: 3.2,
     enemySpeedUnitsPerSecond: 2.4,
     extraLifeScore: 500,
+    fruitSpawnAfterDots: 6,
     readyDelayMs: 1800,
     frightenedDurationMs: 4000,
     enemyReleaseScheduleMs: [2000, 4000, 4000],

@@ -40,7 +40,8 @@ export const createCollectiblesFromBoard = (
         kind,
         tile: tile.position,
         points,
-        active: shouldSpawnCollectible(tile.position, board)
+        active: shouldSpawnCollectible(tile.position, board),
+        spawned: shouldSpawnCollectible(tile.position, board)
       } satisfies Collectible
     ];
   }).filter((collectible) => collectible.active);
@@ -83,9 +84,39 @@ export const collectAtPlayerTile = (params: {
   };
 };
 
+export const deferFruitSpawn = (
+  collectibles: readonly Collectible[],
+  fruitSpawnAfterDots: number | null
+): readonly Collectible[] =>
+  fruitSpawnAfterDots === null
+    ? collectibles
+    : collectibles.map((collectible) =>
+        collectible.kind === "fruit"
+          ? { ...collectible, active: false, spawned: false }
+          : collectible
+      );
+
+export const activateEligibleFruits = (
+  collectibles: readonly Collectible[],
+  fruitSpawnAfterDots: number | null
+): readonly Collectible[] => {
+  if (fruitSpawnAfterDots === null || countCollectedLevelItems(collectibles) < fruitSpawnAfterDots) {
+    return collectibles;
+  }
+
+  return collectibles.map((collectible) =>
+    collectible.kind === "fruit" && !collectible.spawned
+      ? { ...collectible, active: true, spawned: true }
+      : collectible
+  );
+};
+
 const shouldSpawnCollectible = (position: TilePosition, board: Board): boolean =>
   !sameTile(position, board.playerSpawn) &&
   !board.enemySpawns.some((enemySpawn) => sameTile(enemySpawn, position));
 
 const sameTile = (left: TilePosition, right: TilePosition): boolean =>
   left.row === right.row && left.column === right.column;
+
+const countCollectedLevelItems = (collectibles: readonly Collectible[]): number =>
+  collectibles.filter((collectible) => collectible.kind !== "fruit" && !collectible.active).length;

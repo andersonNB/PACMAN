@@ -1,6 +1,12 @@
 import type { GameSnapshot } from "./contracts.js";
 import type { Board, GameState, SessionConfigState } from "../domain/entities.js";
-import { createCollectiblesFromBoard, collectAtPlayerTile, type CollectibleConfig } from "../domain/collectibles.js";
+import {
+  activateEligibleFruits,
+  collectAtPlayerTile,
+  createCollectiblesFromBoard,
+  deferFruitSpawn,
+  type CollectibleConfig
+} from "../domain/collectibles.js";
 import {
   advanceEnemy,
   createEnemies,
@@ -19,6 +25,7 @@ export type SessionConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
   extraLifeScore?: number;
+  fruitSpawnAfterDots?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -98,6 +105,10 @@ export const advanceGameSession = (
     collectibles: state.collectibles,
     playerPosition: player.position
   });
+  const collectibles = activateEligibleFruits(
+    collectionResult.collectibles,
+    state.sessionConfig.fruitSpawnAfterDots
+  );
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
   const modeProgression = resolveGlobalEnemyMode(state, deltaMs, frightenedTimerMs);
@@ -182,7 +193,7 @@ export const advanceGameSession = (
     ...state,
     player,
     enemies: normalizedEnemies,
-    collectibles: collectionResult.collectibles,
+    collectibles,
     score: {
       value: nextScore
     },
@@ -333,11 +344,14 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   enemies: createEnemies(board, {
     unitsPerSecond: sessionConfig.enemySpeedUnitsPerSecond
   }),
-  collectibles: createCollectiblesFromBoard(board, {
-    dotPoints: sessionConfig.scoring.dotPoints,
-    powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
-    fruitPoints: sessionConfig.scoring.fruitPoints
-  }),
+  collectibles: deferFruitSpawn(
+    createCollectiblesFromBoard(board, {
+      dotPoints: sessionConfig.scoring.dotPoints,
+      powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
+      fruitPoints: sessionConfig.scoring.fruitPoints
+    }),
+    sessionConfig.fruitSpawnAfterDots
+  ),
   score: { value: 0 },
   lives: { value: sessionConfig.initialLives },
   extraLifeAwarded: false,
@@ -359,6 +373,8 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
   enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
   extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
+  fruitSpawnAfterDots:
+    config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
   readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,

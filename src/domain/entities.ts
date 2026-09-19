@@ -24,6 +24,7 @@ export type Collectible = Readonly<{
   tile: TilePosition;
   points: number;
   active: boolean;
+  spawned: boolean;
 }>;
 
 export type Player = Readonly<{
@@ -59,6 +60,7 @@ export type SessionConfigState = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
   extraLifeScore: number | null;
+  fruitSpawnAfterDots: number | null;
   readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];

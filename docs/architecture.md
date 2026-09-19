@@ -583,3 +583,9 @@ Regla:
 - La configuracion admite `extraLifeScore` para otorgar una vida al cruzar un umbral de score, una sola vez por sesion.
 - El agregado conserva `extraLifeAwarded`, lo que hace idempotente la regla y permite reiniciarla correctamente al comenzar una partida nueva.
 - El demo concede la vida extra a los 500 puntos y el HUD existente la representa automaticamente.
+
+## 34. Fase 25 implementada
+
+- `fruitSpawnAfterDots` permite diferir el bonus fruit hasta que el jugador haya recogido un numero configurado de dots o power pellets.
+- Cada collectible expone `spawned`, distinguiendo un fruit pendiente de uno que ya fue recogido y evitando reapariciones.
+- El demo activa su fruit tras seis consumibles; como siempre, el fruit no bloquea la finalizacion del nivel.

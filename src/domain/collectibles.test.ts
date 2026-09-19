@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { createBoard, type LevelDefinition } from "./board.js";
-import { collectAtPlayerTile, createCollectiblesFromBoard } from "./collectibles.js";
+import {
+  activateEligibleFruits,
+  collectAtPlayerTile,
+  createCollectiblesFromBoard,
+  deferFruitSpawn
+} from "./collectibles.js";
 import { tileToWorldPosition } from "./player.js";
 
 const LEVEL: LevelDefinition = {
@@ -108,5 +113,30 @@ describe("collectibles", () => {
     });
 
     expect(result.nextStatus).toBe("levelCompleted");
+  });
+
+  it("activates a deferred fruit once the dot threshold is reached and never respawns it", () => {
+    const deferredCollectibles = deferFruitSpawn(collectibles, 2);
+    const fruitBeforeThreshold = deferredCollectibles.find((collectible) => collectible.kind === "fruit");
+    const firstTwoDotIds = deferredCollectibles
+      .filter((collectible) => collectible.kind === "dot")
+      .slice(0, 2)
+      .map((collectible) => collectible.id);
+    const withTwoCollectedDots = deferredCollectibles.map((collectible) =>
+      firstTwoDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
+    );
+    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, 2);
+    const activeFruit = activatedCollectibles.find((collectible) => collectible.kind === "fruit");
+    const collectedFruit = collectAtPlayerTile({
+      collectibles: activatedCollectibles,
+      playerPosition: tileToWorldPosition({ row: 1, column: 5 })
+    }).collectibles;
+
+    expect(fruitBeforeThreshold).toMatchObject({ active: false, spawned: false });
+    expect(activeFruit).toMatchObject({ active: true, spawned: true });
+    expect(activateEligibleFruits(collectedFruit, 2).find((collectible) => collectible.kind === "fruit")).toMatchObject({
+      active: false,
+      spawned: true
+    });
   });
 });
