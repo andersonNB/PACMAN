@@ -18,6 +18,7 @@ import type { Direction } from "../domain/value-objects.js";
 export type SessionConfig = Readonly<{
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  extraLifeScore?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -174,6 +175,8 @@ export const advanceGameSession = (
     collectionResult.frightenedTriggered ? 0 : state.frightenedChainCount,
     frightenedCollisionCount
   );
+  const nextScore = state.score.value + collectionResult.scoreDelta + frightenedEnemyScore;
+  const extraLifeAwarded = shouldAwardExtraLife(state, nextScore);
 
   return {
     ...state,
@@ -181,11 +184,10 @@ export const advanceGameSession = (
     enemies: normalizedEnemies,
     collectibles: collectionResult.collectibles,
     score: {
-      value:
-        state.score.value
-        + collectionResult.scoreDelta
-        + frightenedEnemyScore
+      value: nextScore
     },
+    lives: extraLifeAwarded ? { value: state.lives.value + 1 } : state.lives,
+    extraLifeAwarded: state.extraLifeAwarded || extraLifeAwarded,
     status: collectionResult.nextStatus === null ? state.status : collectionResult.nextStatus,
     phaseTimerMs:
       collectionResult.nextStatus === "levelCompleted" ? state.sessionConfig.levelCompletedDelayMs : state.phaseTimerMs,
@@ -205,6 +207,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   tick: state.tick,
   score: state.score.value,
   lives: state.lives.value,
+  extraLifeAwarded: state.extraLifeAwarded,
   phaseTimerMs: state.phaseTimerMs,
   frightenedTimerMs: state.frightenedTimerMs,
   frightenedChainCount: state.frightenedChainCount,
@@ -337,6 +340,7 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   }),
   score: { value: 0 },
   lives: { value: sessionConfig.initialLives },
+  extraLifeAwarded: false,
   status: "idle",
   tick: 0,
   phaseTimerMs: null,
@@ -354,6 +358,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   initialLives: config.initialLives,
   playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
   enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
+  extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
   readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
@@ -424,6 +429,12 @@ const computeFrightenedEnemyScore = (
 
   return total;
 };
+
+const shouldAwardExtraLife = (state: GameState, nextScore: number): boolean =>
+  !state.extraLifeAwarded &&
+  state.sessionConfig.extraLifeScore !== null &&
+  state.score.value < state.sessionConfig.extraLifeScore &&
+  nextScore >= state.sessionConfig.extraLifeScore;
 
 const resolveGlobalEnemyMode = (
   state: GameState,

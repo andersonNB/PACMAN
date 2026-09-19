@@ -58,6 +58,7 @@ export type SessionConfigState = Readonly<{
   initialLives: number;
   playerSpeedUnitsPerSecond: number;
   enemySpeedUnitsPerSecond: number;
+  extraLifeScore: number | null;
   readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -82,6 +83,7 @@ export type GameState = Readonly<{
   collectibles: readonly Collectible[];
   score: ScoreValue;
   lives: LivesValue;
+  extraLifeAwarded: boolean;
   status: GameStatus;
   tick: number;
   phaseTimerMs: number | null;
