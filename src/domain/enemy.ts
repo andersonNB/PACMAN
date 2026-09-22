@@ -119,6 +119,7 @@ export const advanceEnemy = (params: {
   playerPosition: WorldPosition;
   playerDirection: Direction;
   deltaMs: number;
+  speedMultiplier?: number;
   nextRandom: RandomNumberSource;
 }): Enemy => {
   const { board, deltaMs, nextRandom, playerDirection, playerPosition } = params;
@@ -128,7 +129,8 @@ export const advanceEnemy = (params: {
     return enemy;
   }
 
-  let remainingDistance = enemy.velocity.unitsPerSecond * (deltaMs / 1000);
+  const speedMultiplier = Math.max(0, params.speedMultiplier ?? 1);
+  let remainingDistance = enemy.velocity.unitsPerSecond * speedMultiplier * (deltaMs / 1000);
 
   while (remainingDistance > POSITION_EPSILON) {
     const currentTile = worldToTilePosition(enemy.position);

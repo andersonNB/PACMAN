@@ -61,6 +61,7 @@ export type SessionConfigState = Readonly<{
   enemySpeedUnitsPerSecond: number;
   extraLifeScore: number | null;
   fruitSpawnAfterDots: number | null;
+  frightenedSpeedMultiplier: number;
   readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];

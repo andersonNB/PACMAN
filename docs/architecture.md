@@ -589,3 +589,9 @@ Regla:
 - `fruitSpawnAfterDots` permite diferir el bonus fruit hasta que el jugador haya recogido un numero configurado de dots o power pellets.
 - Cada collectible expone `spawned`, distinguiendo un fruit pendiente de uno que ya fue recogido y evitando reapariciones.
 - El demo activa su fruit tras seis consumibles; como siempre, el fruit no bloquea la finalizacion del nivel.
+
+## 35. Fase 26 implementada
+
+- `frightenedSpeedMultiplier` configura la velocidad temporal de los fantasmas vulnerables, con valor por defecto `1` para mantener compatibilidad.
+- El multiplicador se entrega al movimiento por tick sin modificar la velocidad base almacenada en cada entidad.
+- El demo usa `0.65`, haciendo visible que los fantasmas frightened son mas lentos y que recuperan su ritmo normal al terminar el timer.

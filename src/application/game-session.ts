@@ -26,6 +26,7 @@ export type SessionConfig = Readonly<{
   enemySpeedUnitsPerSecond: number;
   extraLifeScore?: number;
   fruitSpawnAfterDots?: number;
+  frightenedSpeedMultiplier?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -130,6 +131,7 @@ export const advanceGameSession = (
       playerPosition: player.position,
       playerDirection: player.currentDirection,
       deltaMs,
+      speedMultiplier: enemy.behaviorMode === "frightened" ? state.sessionConfig.frightenedSpeedMultiplier : 1,
       nextRandom
     })
   );
@@ -375,6 +377,10 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
   fruitSpawnAfterDots:
     config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
+  frightenedSpeedMultiplier:
+    config.frightenedSpeedMultiplier !== undefined && config.frightenedSpeedMultiplier > 0
+      ? config.frightenedSpeedMultiplier
+      : 1,
   readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,

@@ -49,6 +49,30 @@ describe("enemy movement", () => {
     expect(movedEnemy.position).toEqual({ x: 1.5, y: 4.5 });
   });
 
+  it("applies a supplied speed multiplier without mutating the enemy velocity", () => {
+    const enemy = createEnemy({
+      id: "enemy-1",
+      spawnTile: createTilePosition(5, 1),
+      velocity: { unitsPerSecond: 2 },
+      strategyId: "random",
+      scatterTargetTile: createTilePosition(1, 5),
+      initialDirection: "right"
+    });
+
+    const movedEnemy = advanceEnemy({
+      board,
+      enemy,
+      playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
+      playerDirection: "left",
+      deltaMs: 500,
+      speedMultiplier: 0.5,
+      nextRandom: createDeterministicRandom([0.2])
+    });
+
+    expect(movedEnemy.position).toEqual({ x: 1.5, y: 5 });
+    expect(movedEnemy.velocity).toEqual({ unitsPerSecond: 2 });
+  });
+
   it("avoids reversing direction when there are alternatives", () => {
     const enemy = createEnemy({
       id: "enemy-1",

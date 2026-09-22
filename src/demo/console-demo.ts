@@ -16,6 +16,7 @@ let state = startGameSession(
   createGameSession(createBoard(DEMO_LEVEL), {
     playerSpeedUnitsPerSecond: 2,
     enemySpeedUnitsPerSecond: 2,
+    frightenedSpeedMultiplier: 0.65,
     frightenedDurationMs: 4000,
     enemyReleaseScheduleMs: [2000, 4000, 4000],
     enemyModeSchedule: [
