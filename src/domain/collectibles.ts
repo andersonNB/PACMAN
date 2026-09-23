@@ -41,7 +41,9 @@ export const createCollectiblesFromBoard = (
         tile: tile.position,
         points,
         active: shouldSpawnCollectible(tile.position, board),
-        spawned: shouldSpawnCollectible(tile.position, board)
+        spawned: shouldSpawnCollectible(tile.position, board),
+        collected: false,
+        remainingMs: null
       } satisfies Collectible
     ];
   }).filter((collectible) => collectible.active);
@@ -61,13 +63,15 @@ export const collectAtPlayerTile = (params: {
 
     collected.push({
       ...collectible,
-      active: false
+      active: false,
+      collected: true
     });
     scoreDelta += collectible.points;
 
     return {
       ...collectible,
-      active: false
+      active: false,
+      collected: true
     };
   });
 
@@ -92,13 +96,14 @@ export const deferFruitSpawn = (
     ? collectibles
     : collectibles.map((collectible) =>
         collectible.kind === "fruit"
-          ? { ...collectible, active: false, spawned: false }
+          ? { ...collectible, active: false, spawned: false, remainingMs: null }
           : collectible
       );
 
 export const activateEligibleFruits = (
   collectibles: readonly Collectible[],
-  fruitSpawnAfterDots: number | null
+  fruitSpawnAfterDots: number | null,
+  fruitVisibleDurationMs: number | null = null
 ): readonly Collectible[] => {
   if (fruitSpawnAfterDots === null || countCollectedLevelItems(collectibles) < fruitSpawnAfterDots) {
     return collectibles;
@@ -106,10 +111,26 @@ export const activateEligibleFruits = (
 
   return collectibles.map((collectible) =>
     collectible.kind === "fruit" && !collectible.spawned
-      ? { ...collectible, active: true, spawned: true }
+      ? { ...collectible, active: true, spawned: true, remainingMs: fruitVisibleDurationMs }
       : collectible
   );
 };
+
+export const advanceFruitTimers = (
+  collectibles: readonly Collectible[],
+  deltaMs: number
+): readonly Collectible[] =>
+  collectibles.map((collectible) => {
+    if (collectible.kind !== "fruit" || !collectible.active || collectible.remainingMs === null) {
+      return collectible;
+    }
+
+    const remainingMs = Math.max(collectible.remainingMs - Math.max(deltaMs, 0), 0);
+
+    return remainingMs === 0
+      ? { ...collectible, active: false, remainingMs }
+      : { ...collectible, remainingMs };
+  });
 
 const shouldSpawnCollectible = (position: TilePosition, board: Board): boolean =>
   !sameTile(position, board.playerSpawn) &&

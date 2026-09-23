@@ -528,7 +528,7 @@ const createScorePopups = (
   const collectiblePopups = previousSnapshot.collectibles.flatMap((previousCollectible) => {
     const currentCollectible = currentSnapshot.collectibles.find((candidate) => candidate.id === previousCollectible.id);
 
-    if (!previousCollectible.active || currentCollectible?.active !== false) {
+    if (!previousCollectible.active || currentCollectible?.collected !== true) {
       return [];
     }
 

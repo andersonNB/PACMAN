@@ -44,3 +44,9 @@ docs/
 ## Regla principal
 
 La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimationFrame`.
+
+## Fase 27: fruit temporal
+
+- `fruitVisibleDurationMs` define cuanto permanece visible el bonus fruit tras activarse.
+- La simulacion fija descuenta el temporizador; al expirar, el fruit no vuelve a aparecer en el nivel.
+- El snapshot diferencia una expiracion de una recoleccion para evitar feedback visual o puntos falsos.

@@ -18,6 +18,7 @@ startBrowserDemo({
     enemySpeedUnitsPerSecond: 2.4,
     extraLifeScore: 500,
     fruitSpawnAfterDots: 6,
+    fruitVisibleDurationMs: 8_000,
     frightenedSpeedMultiplier: 0.65,
     readyDelayMs: 1800,
     frightenedDurationMs: 4000,

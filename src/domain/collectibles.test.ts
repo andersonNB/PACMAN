@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createBoard, type LevelDefinition } from "./board.js";
 import {
   activateEligibleFruits,
+  advanceFruitTimers,
   collectAtPlayerTile,
   createCollectiblesFromBoard,
   deferFruitSpawn
@@ -99,6 +100,10 @@ describe("collectibles", () => {
     expect(result.collected.map((collectible) => collectible.kind)).toEqual(["fruit"]);
     expect(result.scoreDelta).toBe(100);
     expect(result.frightenedTriggered).toBe(false);
+    expect(result.collectibles.find((collectible) => collectible.kind === "fruit")).toMatchObject({
+      active: false,
+      collected: true
+    });
   });
 
   it("does not require an uncollected fruit to complete the level", () => {
@@ -125,18 +130,17 @@ describe("collectibles", () => {
     const withTwoCollectedDots = deferredCollectibles.map((collectible) =>
       firstTwoDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
     );
-    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, 2);
+    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, 2, 500);
     const activeFruit = activatedCollectibles.find((collectible) => collectible.kind === "fruit");
-    const collectedFruit = collectAtPlayerTile({
-      collectibles: activatedCollectibles,
-      playerPosition: tileToWorldPosition({ row: 1, column: 5 })
-    }).collectibles;
+    const expiredFruit = advanceFruitTimers(activatedCollectibles, 500);
 
     expect(fruitBeforeThreshold).toMatchObject({ active: false, spawned: false });
-    expect(activeFruit).toMatchObject({ active: true, spawned: true });
-    expect(activateEligibleFruits(collectedFruit, 2).find((collectible) => collectible.kind === "fruit")).toMatchObject({
+    expect(activeFruit).toMatchObject({ active: true, spawned: true, collected: false, remainingMs: 500 });
+    expect(activateEligibleFruits(expiredFruit, 2, 500).find((collectible) => collectible.kind === "fruit")).toMatchObject({
       active: false,
-      spawned: true
+      spawned: true,
+      collected: false,
+      remainingMs: 0
     });
   });
 });

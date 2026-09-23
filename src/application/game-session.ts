@@ -2,6 +2,7 @@ import type { GameSnapshot } from "./contracts.js";
 import type { Board, GameState, SessionConfigState } from "../domain/entities.js";
 import {
   activateEligibleFruits,
+  advanceFruitTimers,
   collectAtPlayerTile,
   createCollectiblesFromBoard,
   deferFruitSpawn,
@@ -26,6 +27,7 @@ export type SessionConfig = Readonly<{
   enemySpeedUnitsPerSecond: number;
   extraLifeScore?: number;
   fruitSpawnAfterDots?: number;
+  fruitVisibleDurationMs?: number;
   frightenedSpeedMultiplier?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
@@ -107,8 +109,9 @@ export const advanceGameSession = (
     playerPosition: player.position
   });
   const collectibles = activateEligibleFruits(
-    collectionResult.collectibles,
-    state.sessionConfig.fruitSpawnAfterDots
+    advanceFruitTimers(collectionResult.collectibles, deltaMs),
+    state.sessionConfig.fruitSpawnAfterDots,
+    state.sessionConfig.fruitVisibleDurationMs
   );
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
@@ -244,7 +247,8 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
     id: collectible.id,
     kind: collectible.kind,
     tile: collectible.tile,
-    active: collectible.active
+    active: collectible.active,
+    collected: collectible.collected
   }))
 });
 
@@ -377,6 +381,10 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
   fruitSpawnAfterDots:
     config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
+  fruitVisibleDurationMs:
+    config.fruitVisibleDurationMs !== undefined && config.fruitVisibleDurationMs > 0
+      ? config.fruitVisibleDurationMs
+      : null,
   frightenedSpeedMultiplier:
     config.frightenedSpeedMultiplier !== undefined && config.frightenedSpeedMultiplier > 0
       ? config.frightenedSpeedMultiplier

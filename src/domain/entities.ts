@@ -25,6 +25,8 @@ export type Collectible = Readonly<{
   points: number;
   active: boolean;
   spawned: boolean;
+  collected: boolean;
+  remainingMs: number | null;
 }>;
 
 export type Player = Readonly<{
@@ -61,6 +63,7 @@ export type SessionConfigState = Readonly<{
   enemySpeedUnitsPerSecond: number;
   extraLifeScore: number | null;
   fruitSpawnAfterDots: number | null;
+  fruitVisibleDurationMs: number | null;
   frightenedSpeedMultiplier: number;
   readyDelayMs: number;
   frightenedDurationMs: number;
