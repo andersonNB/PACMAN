@@ -27,6 +27,7 @@ export type SessionConfig = Readonly<{
   enemySpeedUnitsPerSecond: number;
   extraLifeScore?: number;
   fruitSpawnAfterDots?: number;
+  fruitSpawnThresholds?: readonly number[];
   fruitVisibleDurationMs?: number;
   frightenedSpeedMultiplier?: number;
   readyDelayMs?: number;
@@ -110,7 +111,7 @@ export const advanceGameSession = (
   });
   const collectibles = activateEligibleFruits(
     advanceFruitTimers(collectionResult.collectibles, deltaMs),
-    state.sessionConfig.fruitSpawnAfterDots,
+    state.sessionConfig.fruitSpawnThresholds,
     state.sessionConfig.fruitVisibleDurationMs
   );
 
@@ -356,7 +357,7 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
       powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
       fruitPoints: sessionConfig.scoring.fruitPoints
     }),
-    sessionConfig.fruitSpawnAfterDots
+    sessionConfig.fruitSpawnThresholds
   ),
   score: { value: 0 },
   lives: { value: sessionConfig.initialLives },
@@ -381,6 +382,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
   fruitSpawnAfterDots:
     config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
+  fruitSpawnThresholds: normalizeFruitSpawnThresholds(config),
   fruitVisibleDurationMs:
     config.fruitVisibleDurationMs !== undefined && config.fruitVisibleDurationMs > 0
       ? config.fruitVisibleDurationMs
@@ -402,6 +404,14 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   respawnDelayMs: config.respawnDelayMs,
   levelCompletedDelayMs: config.levelCompletedDelayMs
 });
+
+const normalizeFruitSpawnThresholds = (config: SessionConfig): readonly number[] => {
+  const rawThresholds = config.fruitSpawnThresholds ??
+    (config.fruitSpawnAfterDots === undefined ? [] : [config.fruitSpawnAfterDots]);
+
+  return [...new Set(rawThresholds.filter((threshold) => Number.isFinite(threshold) && threshold > 0))]
+    .sort((left, right) => left - right);
+};
 
 const resolveFrightenedTimer = (
   state: GameState,

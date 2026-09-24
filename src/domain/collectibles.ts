@@ -42,6 +42,7 @@ export const createCollectiblesFromBoard = (
         points,
         active: shouldSpawnCollectible(tile.position, board),
         spawned: shouldSpawnCollectible(tile.position, board),
+        spawnCount: shouldSpawnCollectible(tile.position, board) ? 1 : 0,
         collected: false,
         remainingMs: null
       } satisfies Collectible
@@ -90,30 +91,48 @@ export const collectAtPlayerTile = (params: {
 
 export const deferFruitSpawn = (
   collectibles: readonly Collectible[],
-  fruitSpawnAfterDots: number | null
+  fruitSpawnAfterDots: number | readonly number[] | null
 ): readonly Collectible[] =>
-  fruitSpawnAfterDots === null
+  normalizeFruitSpawnThresholds(fruitSpawnAfterDots).length === 0
     ? collectibles
     : collectibles.map((collectible) =>
         collectible.kind === "fruit"
-          ? { ...collectible, active: false, spawned: false, remainingMs: null }
+          ? { ...collectible, active: false, spawned: false, spawnCount: 0, remainingMs: null }
           : collectible
       );
 
 export const activateEligibleFruits = (
   collectibles: readonly Collectible[],
-  fruitSpawnAfterDots: number | null,
+  fruitSpawnAfterDots: number | readonly number[] | null,
   fruitVisibleDurationMs: number | null = null
 ): readonly Collectible[] => {
-  if (fruitSpawnAfterDots === null || countCollectedLevelItems(collectibles) < fruitSpawnAfterDots) {
+  const thresholds = normalizeFruitSpawnThresholds(fruitSpawnAfterDots);
+
+  if (thresholds.length === 0) {
     return collectibles;
   }
 
-  return collectibles.map((collectible) =>
-    collectible.kind === "fruit" && !collectible.spawned
-      ? { ...collectible, active: true, spawned: true, remainingMs: fruitVisibleDurationMs }
-      : collectible
-  );
+  return collectibles.map((collectible) => {
+    const nextThreshold = thresholds[collectible.spawnCount];
+
+    if (
+      collectible.kind !== "fruit" ||
+      collectible.active ||
+      nextThreshold === undefined ||
+      countCollectedLevelItems(collectibles) < nextThreshold
+    ) {
+      return collectible;
+    }
+
+    return {
+      ...collectible,
+      active: true,
+      spawned: true,
+      spawnCount: collectible.spawnCount + 1,
+      collected: false,
+      remainingMs: fruitVisibleDurationMs
+    };
+  });
 };
 
 export const advanceFruitTimers = (
@@ -141,3 +160,16 @@ const sameTile = (left: TilePosition, right: TilePosition): boolean =>
 
 const countCollectedLevelItems = (collectibles: readonly Collectible[]): number =>
   collectibles.filter((collectible) => collectible.kind !== "fruit" && !collectible.active).length;
+
+const normalizeFruitSpawnThresholds = (
+  fruitSpawnAfterDots: number | readonly number[] | null
+): readonly number[] => {
+  const rawThresholds = Array.isArray(fruitSpawnAfterDots)
+    ? fruitSpawnAfterDots
+    : fruitSpawnAfterDots === null
+      ? []
+      : [fruitSpawnAfterDots];
+
+  return [...new Set(rawThresholds.filter((threshold) => Number.isFinite(threshold) && threshold > 0))]
+    .sort((left, right) => left - right);
+};

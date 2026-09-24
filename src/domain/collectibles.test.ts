@@ -120,8 +120,8 @@ describe("collectibles", () => {
     expect(result.nextStatus).toBe("levelCompleted");
   });
 
-  it("activates a deferred fruit once the dot threshold is reached and never respawns it", () => {
-    const deferredCollectibles = deferFruitSpawn(collectibles, 2);
+  it("activates deferred fruit for each configured threshold without unlimited respawns", () => {
+    const deferredCollectibles = deferFruitSpawn(collectibles, [2, 4]);
     const fruitBeforeThreshold = deferredCollectibles.find((collectible) => collectible.kind === "fruit");
     const firstTwoDotIds = deferredCollectibles
       .filter((collectible) => collectible.kind === "dot")
@@ -130,15 +130,35 @@ describe("collectibles", () => {
     const withTwoCollectedDots = deferredCollectibles.map((collectible) =>
       firstTwoDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
     );
-    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, 2, 500);
+    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, [2, 4], 500);
     const activeFruit = activatedCollectibles.find((collectible) => collectible.kind === "fruit");
-    const expiredFruit = advanceFruitTimers(activatedCollectibles, 500);
+    const collectedFirstFruit = collectAtPlayerTile({
+      collectibles: activatedCollectibles,
+      playerPosition: tileToWorldPosition({ row: 1, column: 5 })
+    }).collectibles;
+    const firstFourDotIds = deferredCollectibles
+      .filter((collectible) => collectible.kind === "dot")
+      .slice(0, 4)
+      .map((collectible) => collectible.id);
+    const withFourCollectedDots = collectedFirstFruit.map((collectible) =>
+      firstFourDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
+    );
+    const activatedSecondFruit = activateEligibleFruits(withFourCollectedDots, [2, 4], 500);
+    const expiredSecondFruit = advanceFruitTimers(activatedSecondFruit, 500);
 
-    expect(fruitBeforeThreshold).toMatchObject({ active: false, spawned: false });
-    expect(activeFruit).toMatchObject({ active: true, spawned: true, collected: false, remainingMs: 500 });
-    expect(activateEligibleFruits(expiredFruit, 2, 500).find((collectible) => collectible.kind === "fruit")).toMatchObject({
+    expect(fruitBeforeThreshold).toMatchObject({ active: false, spawned: false, spawnCount: 0 });
+    expect(activeFruit).toMatchObject({ active: true, spawned: true, spawnCount: 1, collected: false, remainingMs: 500 });
+    expect(activatedSecondFruit.find((collectible) => collectible.kind === "fruit")).toMatchObject({
+      active: true,
+      spawned: true,
+      spawnCount: 2,
+      collected: false,
+      remainingMs: 500
+    });
+    expect(activateEligibleFruits(expiredSecondFruit, [2, 4], 500).find((collectible) => collectible.kind === "fruit")).toMatchObject({
       active: false,
       spawned: true,
+      spawnCount: 2,
       collected: false,
       remainingMs: 0
     });

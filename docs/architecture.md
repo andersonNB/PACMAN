@@ -595,3 +595,14 @@ Regla:
 - `frightenedSpeedMultiplier` configura la velocidad temporal de los fantasmas vulnerables, con valor por defecto `1` para mantener compatibilidad.
 - El multiplicador se entrega al movimiento por tick sin modificar la velocidad base almacenada en cada entidad.
 - El demo usa `0.65`, haciendo visible que los fantasmas frightened son mas lentos y que recuperan su ritmo normal al terminar el timer.
+
+## 36. Fase 27 implementada
+
+- `fruitVisibleDurationMs` limita de forma determinista cuanto permanece visible cada aparicion del bonus fruit.
+- Una expiracion no se confunde con una recoleccion, por lo que no suma puntos ni genera feedback visual.
+
+## 37. Fase 28 implementada
+
+- `fruitSpawnThresholds` permite declarar varias apariciones del mismo fruit por nivel, aproximando los dos bonus del arcade clasico.
+- El collectible conserva `spawnCount`; cada umbral solo se puede activar una vez y no existen reapariciones ilimitadas.
+- `fruitSpawnAfterDots` sigue funcionando como alias de compatibilidad para una sola aparicion.
