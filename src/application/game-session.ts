@@ -249,7 +249,8 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
     kind: collectible.kind,
     tile: collectible.tile,
     active: collectible.active,
-    collected: collectible.collected
+    collected: collectible.collected,
+    remainingMs: collectible.remainingMs
   }))
 });
 

@@ -18,6 +18,7 @@ import type { Direction } from "../domain/value-objects.js";
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
 const SCORE_POPUP_DURATION_MS = 700;
+const FRUIT_WARNING_DURATION_MS = 2_000;
 
 type ScorePopup = Readonly<{
   score: number;
@@ -466,6 +467,14 @@ const drawCollectibles = (
     }
 
     if (collectible.kind === "fruit") {
+      const fruitVisible = collectible.remainingMs === null
+        || collectible.remainingMs > FRUIT_WARNING_DURATION_MS
+        || Math.floor(presentationTimeMs / 120) % 2 === 0;
+
+      if (!fruitVisible) {
+        return;
+      }
+
       drawFruit(context, collectible.tile.column * TILE_SIZE + TILE_SIZE / 2, collectible.tile.row * TILE_SIZE + TILE_SIZE / 2);
       return;
     }

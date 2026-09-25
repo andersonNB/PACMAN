@@ -606,3 +606,9 @@ Regla:
 - `fruitSpawnThresholds` permite declarar varias apariciones del mismo fruit por nivel, aproximando los dos bonus del arcade clasico.
 - El collectible conserva `spawnCount`; cada umbral solo se puede activar una vez y no existen reapariciones ilimitadas.
 - `fruitSpawnAfterDots` sigue funcionando como alias de compatibilidad para una sola aparicion.
+
+## 38. Fase 29 implementada
+
+- El snapshot publica `remainingMs` para que los adaptadores puedan informar el estado temporal de un collectible sin consultar el agregado mutable.
+- Durante los dos ultimos segundos de una aparicion, el canvas hace parpadear el fruit con el reloj de presentacion.
+- El parpadeo es una decision visual derivada: ni el tiempo de expiracion ni el resultado de la partida dependen del frame rate.

@@ -36,6 +36,7 @@ export type CollectibleSnapshot = Readonly<{
   tile: TilePosition;
   active: boolean;
   collected: boolean;
+  remainingMs: number | null;
 }>;
 
 export type GameSnapshot = Readonly<{
