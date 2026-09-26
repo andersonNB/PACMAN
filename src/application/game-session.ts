@@ -28,6 +28,7 @@ export type SessionConfig = Readonly<{
   extraLifeScore?: number;
   fruitSpawnAfterDots?: number;
   fruitSpawnThresholds?: readonly number[];
+  fruitPointsBySpawn?: readonly number[];
   fruitVisibleDurationMs?: number;
   frightenedSpeedMultiplier?: number;
   readyDelayMs?: number;
@@ -112,7 +113,8 @@ export const advanceGameSession = (
   const collectibles = activateEligibleFruits(
     advanceFruitTimers(collectionResult.collectibles, deltaMs),
     state.sessionConfig.fruitSpawnThresholds,
-    state.sessionConfig.fruitVisibleDurationMs
+    state.sessionConfig.fruitVisibleDurationMs,
+    state.sessionConfig.fruitPointsBySpawn
   );
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
@@ -248,6 +250,7 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
     id: collectible.id,
     kind: collectible.kind,
     tile: collectible.tile,
+    points: collectible.points,
     active: collectible.active,
     collected: collectible.collected,
     remainingMs: collectible.remainingMs
@@ -384,6 +387,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   fruitSpawnAfterDots:
     config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
   fruitSpawnThresholds: normalizeFruitSpawnThresholds(config),
+  fruitPointsBySpawn: normalizeFruitPointTiers(config.fruitPointsBySpawn),
   fruitVisibleDurationMs:
     config.fruitVisibleDurationMs !== undefined && config.fruitVisibleDurationMs > 0
       ? config.fruitVisibleDurationMs
@@ -413,6 +417,10 @@ const normalizeFruitSpawnThresholds = (config: SessionConfig): readonly number[]
   return [...new Set(rawThresholds.filter((threshold) => Number.isFinite(threshold) && threshold > 0))]
     .sort((left, right) => left - right);
 };
+
+const normalizeFruitPointTiers = (fruitPointsBySpawn: readonly number[] | undefined): readonly number[] =>
+  fruitPointsBySpawn?.map((points) => Number.isFinite(points) && points > 0 ? points : null)
+    .filter((points): points is number => points !== null) ?? [];
 
 const resolveFrightenedTimer = (
   state: GameState,

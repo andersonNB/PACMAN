@@ -612,3 +612,9 @@ Regla:
 - El snapshot publica `remainingMs` para que los adaptadores puedan informar el estado temporal de un collectible sin consultar el agregado mutable.
 - Durante los dos ultimos segundos de una aparicion, el canvas hace parpadear el fruit con el reloj de presentacion.
 - El parpadeo es una decision visual derivada: ni el tiempo de expiracion ni el resultado de la partida dependen del frame rate.
+
+## 39. Fase 30 implementada
+
+- `fruitPointsBySpawn` permite asignar una puntuacion por aparicion del bonus fruit, con fallback a `fruitPoints` para configuraciones existentes.
+- Los puntos del collectible viajan en el snapshot, por lo que el popup muestra el valor realmente otorgado por el dominio.
+- El demo usa 100 puntos en la primera aparicion y 300 en la segunda.

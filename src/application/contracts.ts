@@ -34,6 +34,7 @@ export type CollectibleSnapshot = Readonly<{
   id: string;
   kind: CollectibleKind;
   tile: TilePosition;
+  points: number;
   active: boolean;
   collected: boolean;
   remainingMs: number | null;

@@ -542,7 +542,7 @@ const createScorePopups = (
     }
 
     return [{
-      score: scoreForCollectible(previousCollectible.kind, sessionConfig),
+      score: scoreForCollectible(previousCollectible, sessionConfig),
       position: { x: previousCollectible.tile.column + 0.5, y: previousCollectible.tile.row + 0.5 },
       startedAtMs
     } satisfies ScorePopup];
@@ -563,15 +563,15 @@ const createScorePopups = (
 };
 
 const scoreForCollectible = (
-  kind: ReturnType<typeof toGameSnapshot>["collectibles"][number]["kind"],
+  collectible: ReturnType<typeof toGameSnapshot>["collectibles"][number],
   sessionConfig: SessionConfig
 ): number => {
-  if (kind === "powerPellet") {
+  if (collectible.kind === "powerPellet") {
     return sessionConfig.scoring.powerPelletPoints;
   }
 
-  if (kind === "fruit") {
-    return sessionConfig.scoring.fruitPoints;
+  if (collectible.kind === "fruit") {
+    return collectible.points;
   }
 
   return sessionConfig.scoring.dotPoints;

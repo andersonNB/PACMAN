@@ -130,7 +130,7 @@ describe("collectibles", () => {
     const withTwoCollectedDots = deferredCollectibles.map((collectible) =>
       firstTwoDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
     );
-    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, [2, 4], 500);
+    const activatedCollectibles = activateEligibleFruits(withTwoCollectedDots, [2, 4], 500, [125, 300]);
     const activeFruit = activatedCollectibles.find((collectible) => collectible.kind === "fruit");
     const collectedFirstFruit = collectAtPlayerTile({
       collectibles: activatedCollectibles,
@@ -143,22 +143,24 @@ describe("collectibles", () => {
     const withFourCollectedDots = collectedFirstFruit.map((collectible) =>
       firstFourDotIds.includes(collectible.id) ? { ...collectible, active: false } : collectible
     );
-    const activatedSecondFruit = activateEligibleFruits(withFourCollectedDots, [2, 4], 500);
+    const activatedSecondFruit = activateEligibleFruits(withFourCollectedDots, [2, 4], 500, [125, 300]);
     const expiredSecondFruit = advanceFruitTimers(activatedSecondFruit, 500);
 
     expect(fruitBeforeThreshold).toMatchObject({ active: false, spawned: false, spawnCount: 0 });
-    expect(activeFruit).toMatchObject({ active: true, spawned: true, spawnCount: 1, collected: false, remainingMs: 500 });
+    expect(activeFruit).toMatchObject({ active: true, spawned: true, spawnCount: 1, points: 125, collected: false, remainingMs: 500 });
     expect(activatedSecondFruit.find((collectible) => collectible.kind === "fruit")).toMatchObject({
       active: true,
       spawned: true,
       spawnCount: 2,
+      points: 300,
       collected: false,
       remainingMs: 500
     });
-    expect(activateEligibleFruits(expiredSecondFruit, [2, 4], 500).find((collectible) => collectible.kind === "fruit")).toMatchObject({
+    expect(activateEligibleFruits(expiredSecondFruit, [2, 4], 500, [125, 300]).find((collectible) => collectible.kind === "fruit")).toMatchObject({
       active: false,
       spawned: true,
       spawnCount: 2,
+      points: 300,
       collected: false,
       remainingMs: 0
     });

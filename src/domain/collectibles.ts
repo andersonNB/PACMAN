@@ -104,7 +104,8 @@ export const deferFruitSpawn = (
 export const activateEligibleFruits = (
   collectibles: readonly Collectible[],
   fruitSpawnAfterDots: number | readonly number[] | null,
-  fruitVisibleDurationMs: number | null = null
+  fruitVisibleDurationMs: number | null = null,
+  fruitPointsBySpawn: readonly number[] = []
 ): readonly Collectible[] => {
   const thresholds = normalizeFruitSpawnThresholds(fruitSpawnAfterDots);
 
@@ -130,7 +131,8 @@ export const activateEligibleFruits = (
       spawned: true,
       spawnCount: collectible.spawnCount + 1,
       collected: false,
-      remainingMs: fruitVisibleDurationMs
+      remainingMs: fruitVisibleDurationMs,
+      points: fruitPointsBySpawn[collectible.spawnCount] ?? collectible.points
     };
   });
 };
