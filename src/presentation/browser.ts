@@ -63,6 +63,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   let previousState = state;
   let accumulator = 0;
   let lastFrameTime = performance.now();
+  let presentationTimeMs = 0;
   let animationFrameId = 0;
   let scoreWasPersisted = false;
   let debugEnabled = false;
@@ -119,6 +120,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
       previousState = state;
       scoreWasPersisted = false;
       scorePopups = [];
+      presentationTimeMs = 0;
       return;
     }
 
@@ -141,6 +143,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
         previousState = state;
         scoreWasPersisted = false;
         scorePopups = [];
+        presentationTimeMs = 0;
       }
     }
   };
@@ -163,10 +166,16 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawBoard(context, board);
-    const presentationTimeMs = performance.now();
     drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
     drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
-    drawPlayer(context, previousSnapshot, snapshot, alpha, resolvePlayerDeathProgress(snapshot, config.sessionConfig));
+    drawPlayer(
+      context,
+      previousSnapshot,
+      snapshot,
+      alpha,
+      resolvePlayerDeathProgress(snapshot, config.sessionConfig),
+      presentationTimeMs
+    );
     drawScorePopups(context, scorePopups, presentationTimeMs);
 
     if (debugEnabled) {
@@ -179,6 +188,9 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   const step = (time: number): void => {
     const frameDelta = Math.min(time - lastFrameTime, 250);
     lastFrameTime = time;
+    if (state.status !== "paused") {
+      presentationTimeMs += frameDelta;
+    }
     accumulator += frameDelta;
 
     while (accumulator >= FIXED_TICK_MS) {
@@ -186,12 +198,12 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
       state = advanceGameSession(state, FIXED_TICK_MS, nextRandom);
       scorePopups = [
         ...scorePopups,
-        ...createScorePopups(toGameSnapshot(previousState), toGameSnapshot(state), config.sessionConfig, time)
+        ...createScorePopups(toGameSnapshot(previousState), toGameSnapshot(state), config.sessionConfig, presentationTimeMs)
       ];
       accumulator -= FIXED_TICK_MS;
     }
 
-    scorePopups = scorePopups.filter((popup) => time - popup.startedAtMs < SCORE_POPUP_DURATION_MS);
+    scorePopups = scorePopups.filter((popup) => presentationTimeMs - popup.startedAtMs < SCORE_POPUP_DURATION_MS);
 
     const status = state.status;
 
@@ -582,11 +594,12 @@ const drawPlayer = (
   previousSnapshot: ReturnType<typeof toGameSnapshot>,
   currentSnapshot: ReturnType<typeof toGameSnapshot>,
   alpha: number,
-  deathProgress: number | null
+  deathProgress: number | null,
+  presentationTimeMs: number
 ): void => {
   const position = interpolatePosition(previousSnapshot.player.position, currentSnapshot.player.position, alpha);
   const mouthAngle = deathProgress === null
-    ? currentSnapshot.status === "paused" ? 0.12 : 0.25 + Math.abs(Math.sin(performance.now() / 90)) * 0.16
+    ? currentSnapshot.status === "paused" ? 0.12 : 0.25 + Math.abs(Math.sin(presentationTimeMs / 90)) * 0.16
     : Math.min(Math.PI, 0.22 + deathProgress * Math.PI * 0.78);
   const directionAngle = directionToAngle(currentSnapshot.player.currentDirection);
   const radius = TILE_SIZE * 0.36 * (deathProgress === null ? 1 : 1 - deathProgress * 0.88);

@@ -618,3 +618,9 @@ Regla:
 - `fruitPointsBySpawn` permite asignar una puntuacion por aparicion del bonus fruit, con fallback a `fruitPoints` para configuraciones existentes.
 - Los puntos del collectible viajan en el snapshot, por lo que el popup muestra el valor realmente otorgado por el dominio.
 - El demo usa 100 puntos en la primera aparicion y 300 en la segunda.
+
+## 40. Fase 31 implementada
+
+- El adaptador canvas mantiene un reloj de presentacion independiente del reloj real del navegador.
+- En `Paused`, se congelan la boca del jugador, los parpadeos de collectibles y los popups de score, igual que la simulacion.
+- Reiniciar una partida restablece tambien el reloj visual, sin introducir estado de presentacion en el dominio.
