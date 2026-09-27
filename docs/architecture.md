@@ -630,3 +630,9 @@ Regla:
 - `requestDirectionForSession` inicia la ronda desde `Idle` y conserva la primera direccion solicitada durante `Ready`.
 - El navegador comunica que flechas y WASD inician la partida; ya no requiere conocer `Enter` como paso previo.
 - Una prueba de aplicacion asegura que la primera direccion queda en buffer y mueve al jugador al terminar el delay de salida.
+
+## 42. Correccion de movimiento entre ticks
+
+- La validacion de movimiento conserva la celda de origen mientras el jugador avanza entre dos centros de tile.
+- Esto evita detenerse en el borde de una celda cuya salida esta bloqueada antes de poder tomar un giro valido en su centro.
+- Una regresion con ticks parciales cubre el avance, el giro y la continuacion por el nuevo pasillo.

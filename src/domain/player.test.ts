@@ -16,6 +16,18 @@ const MOVEMENT_LEVEL: LevelDefinition = {
   ]
 };
 
+const TURNING_LEVEL: LevelDefinition = {
+  id: "partial-tick-turning",
+  rows: [
+    "#######",
+    "#P..###",
+    "###.###",
+    "#.....#",
+    "#E....#",
+    "#######"
+  ]
+};
+
 describe("player movement", () => {
   const board = createBoard(MOVEMENT_LEVEL);
 
@@ -73,6 +85,27 @@ describe("player movement", () => {
 
     expect(worldToTilePosition(movedPlayer.position)).toEqual({ row: 3, column: 1 });
     expect(movedPlayer.currentDirection).toBe("up");
+  });
+
+  it("reaches a turn center across partial ticks instead of stopping at the tile boundary", () => {
+    const turningBoard = createBoard(TURNING_LEVEL);
+    const player = requestPlayerDirection(
+      createPlayer({
+        spawnTile: createTilePosition(1, 2),
+        initialDirection: "right",
+        velocity: { unitsPerSecond: 2 }
+      }),
+      "down"
+    );
+
+    const betweenCenters = advancePlayer({ board: turningBoard, player, deltaMs: 300 });
+    const atTurnCenter = advancePlayer({ board: turningBoard, player: betweenCenters, deltaMs: 200 });
+    const turnedPlayer = advancePlayer({ board: turningBoard, player: atTurnCenter, deltaMs: 250 });
+
+    expect(betweenCenters.position).toEqual({ x: 3.1, y: 1.5 });
+    expect(atTurnCenter.position).toEqual({ x: 3.5, y: 1.5 });
+    expect(atTurnCenter.currentDirection).toBe("down");
+    expect(turnedPlayer.position).toEqual({ x: 3.5, y: 2 });
   });
 
   it("stops at the tile center when both current and requested directions are blocked", () => {

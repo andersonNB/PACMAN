@@ -55,15 +55,19 @@ export const advancePlayer = ({ board, player, deltaMs }: AdvancePlayerParams): 
 
   while (remainingDistance > POSITION_EPSILON) {
     const currentTile = worldToTilePosition(nextPlayer.position);
+    const atTileCenter = isAtTileCenter(nextPlayer.position);
 
-    if (isAtTileCenter(nextPlayer.position)) {
+    if (atTileCenter) {
       nextPlayer = resolveDirectionAtCenter(nextPlayer, currentTile, board);
     }
 
     const activeDirection = nextPlayer.currentDirection;
     const boardQuery = createBoardQuery(board);
+    const movementOriginTile = atTileCenter
+      ? currentTile
+      : getMovementOriginTile(nextPlayer.position, activeDirection);
 
-    if (!boardQuery.getAllowedDirectionsForPlayer(currentTile).includes(activeDirection)) {
+    if (!boardQuery.getAllowedDirectionsForPlayer(movementOriginTile).includes(activeDirection)) {
       break;
     }
 
@@ -153,6 +157,16 @@ const movePosition = (position: WorldPosition, direction: Direction, distance: n
     x: position.x + vector.x * distance,
     y: position.y + vector.y * distance
   };
+};
+
+// Between centers, movement is still governed by the tile the player left.
+const getMovementOriginTile = (position: WorldPosition, direction: Direction): TilePosition => {
+  const vector = DIRECTION_VECTORS[direction];
+
+  return worldToTilePosition({
+    x: position.x - vector.x * HALF_TILE,
+    y: position.y - vector.y * HALF_TILE
+  });
 };
 
 const normalizeWorldPosition = (position: WorldPosition, board: Board): WorldPosition => {
