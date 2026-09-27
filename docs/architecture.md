@@ -624,3 +624,9 @@ Regla:
 - El adaptador canvas mantiene un reloj de presentacion independiente del reloj real del navegador.
 - En `Paused`, se congelan la boca del jugador, los parpadeos de collectibles y los popups de score, igual que la simulacion.
 - Reiniciar una partida restablece tambien el reloj visual, sin introducir estado de presentacion en el dominio.
+
+## 41. Correccion de controles
+
+- `requestDirectionForSession` inicia la ronda desde `Idle` y conserva la primera direccion solicitada durante `Ready`.
+- El navegador comunica que flechas y WASD inician la partida; ya no requiere conocer `Enter` como paso previo.
+- Una prueba de aplicacion asegura que la primera direccion queda en buffer y mueve al jugador al terminar el delay de salida.

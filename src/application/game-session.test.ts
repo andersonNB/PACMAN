@@ -71,6 +71,30 @@ describe("game session states", () => {
     expect(runningState.status).toBe("running");
   });
 
+  it("starts from idle and buffers the first requested direction", () => {
+    const idleState = createGameSession(createBoard(LEVEL), {
+      playerSpeedUnitsPerSecond: 2,
+      enemySpeedUnitsPerSecond: 2,
+      readyDelayMs: 500,
+      frightenedDurationMs: 1200,
+      enemyReleaseScheduleMs: [1000, 1000],
+      enemyModeSchedule: [],
+      initialLives: 2,
+      scoring: { dotPoints: 10, powerPelletPoints: 50, fruitPoints: 100, enemyPoints: 200 },
+      respawnDelayMs: 1000,
+      levelCompletedDelayMs: 1000
+    });
+
+    const readyState = requestDirectionForSession(idleState, "right");
+    const runningState = advanceGameSession(readyState, 500, createDeterministicRandom([0.2]));
+    const movedState = advanceGameSession(runningState, 500, createDeterministicRandom([0.2]));
+
+    expect(readyState.status).toBe("ready");
+    expect(readyState.player.requestedDirection).toBe("right");
+    expect(runningState.status).toBe("running");
+    expect(movedState.player.position.x).toBeGreaterThan(runningState.player.position.x);
+  });
+
   it("pauses and resumes only through explicit transitions", () => {
     const runningState = createSession();
     const pausedState = pauseGameSession(runningState);

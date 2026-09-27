@@ -158,9 +158,9 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     highScoreValue.textContent = String(highScore);
     livesValue.innerHTML = renderLives(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
-      ? "Press Enter to start"
+      ? "Press an arrow, WASD, or Enter to start"
       : snapshot.status === "ready"
-        ? "Get ready"
+        ? "READY! Your first direction is buffered"
       : "Arrows/WASD move | Space pause | R restart | Tab debug";
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 

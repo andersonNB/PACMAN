@@ -71,10 +71,16 @@ export const resumeGameSession = (state: GameState): GameState =>
 export const restartGameSession = (state: GameState): GameState =>
   createInitialGameState(state.board, state.sessionConfig);
 
-export const requestDirectionForSession = (state: GameState, direction: Direction): GameState => ({
-  ...state,
-  player: requestPlayerDirection(state.player, direction)
-});
+export const requestDirectionForSession = (state: GameState, direction: Direction): GameState => {
+  const stateWithRequestedDirection = {
+    ...state,
+    player: requestPlayerDirection(state.player, direction)
+  };
+
+  return state.status === "idle"
+    ? enterReadyState(stateWithRequestedDirection)
+    : stateWithRequestedDirection;
+};
 
 export const advanceGameSession = (
   state: GameState,
