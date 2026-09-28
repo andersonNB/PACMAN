@@ -59,6 +59,26 @@ describe("game session enemy release", () => {
     expect(state.enemyReleaseTimerMs).toBeNull();
   });
 
+  it("releases the next enemy early when the dot threshold is reached", () => {
+    let state = createSession();
+    const firstDot = state.collectibles.find((collectible) => collectible.kind === "dot");
+
+    state = {
+      ...state,
+      collectibles: state.collectibles.map((collectible) =>
+        collectible.id === firstDot?.id ? { ...collectible, active: false, collected: true } : collectible
+      ),
+      sessionConfig: {
+        ...state.sessionConfig,
+        enemyReleaseDotThresholds: [1]
+      }
+    };
+    state = advanceGameSession(state, 0, createDeterministicRandom([0.2]));
+
+    expect(state.enemies[1]?.navigationState).toBe("leavingHome");
+    expect(state.nextEnemyReleaseIndex).toBe(2);
+  });
+
   it("promotes a leavingHome enemy to outside after it reaches the exit lane", () => {
     let state = createSession();
 

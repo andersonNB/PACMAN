@@ -34,6 +34,7 @@ export type SessionConfig = Readonly<{
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
+  enemyReleaseDotThresholds?: readonly number[];
   enemyModeSchedule: readonly Readonly<{
     mode: "scatter" | "chase";
     durationMs: number;
@@ -125,7 +126,11 @@ export const advanceGameSession = (
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
   const modeProgression = resolveGlobalEnemyMode(state, deltaMs, frightenedTimerMs);
-  const releaseProgression = resolveEnemyRelease(state, deltaMs);
+  const releaseProgression = resolveEnemyRelease(
+    state,
+    deltaMs,
+    countCollectedLevelItems(collectionResult.collectibles)
+  );
   const enemiesWithMode = applyGlobalEnemyMode(releaseProgression.enemies, modeProgression.mode);
 
   const enemiesWithCurrentMode = collectionResult.frightenedTriggered
@@ -405,6 +410,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
+  enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(config.enemyReleaseDotThresholds),
   enemyModeSchedule: config.enemyModeSchedule,
   scoring: {
     dotPoints: config.scoring.dotPoints,
@@ -427,6 +433,12 @@ const normalizeFruitSpawnThresholds = (config: SessionConfig): readonly number[]
 const normalizeFruitPointTiers = (fruitPointsBySpawn: readonly number[] | undefined): readonly number[] =>
   fruitPointsBySpawn?.map((points) => Number.isFinite(points) && points > 0 ? points : null)
     .filter((points): points is number => points !== null) ?? [];
+
+const normalizeEnemyReleaseDotThresholds = (
+  enemyReleaseDotThresholds: readonly number[] | undefined
+): readonly number[] =>
+  enemyReleaseDotThresholds?.map((threshold) => Number.isFinite(threshold) && threshold > 0 ? threshold : null)
+    .filter((threshold): threshold is number => threshold !== null) ?? [];
 
 const resolveFrightenedTimer = (
   state: GameState,
@@ -537,13 +549,14 @@ const applyGlobalEnemyMode = (
 
 const resolveEnemyRelease = (
   state: GameState,
-  deltaMs: number
+  deltaMs: number,
+  collectedLevelItems: number
 ): Readonly<{
   enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[];
   nextEnemyReleaseIndex: number;
   enemyReleaseTimerMs: number | null;
 }> => {
-  if (state.nextEnemyReleaseIndex >= state.enemies.length || state.enemyReleaseTimerMs === null) {
+  if (state.nextEnemyReleaseIndex >= state.enemies.length) {
     return {
       enemies: state.enemies,
       nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
@@ -553,9 +566,19 @@ const resolveEnemyRelease = (
 
   let enemies = [...state.enemies];
   let nextEnemyReleaseIndex = state.nextEnemyReleaseIndex;
-  let enemyReleaseTimerMs: number | null = state.enemyReleaseTimerMs - deltaMs;
+  let enemyReleaseTimerMs = state.enemyReleaseTimerMs === null
+    ? null
+    : state.enemyReleaseTimerMs - deltaMs;
 
-  while (enemyReleaseTimerMs <= 0 && nextEnemyReleaseIndex < enemies.length) {
+  while (nextEnemyReleaseIndex < enemies.length) {
+    const dotThreshold = state.sessionConfig.enemyReleaseDotThresholds[nextEnemyReleaseIndex - 1];
+    const releasedByDots = dotThreshold !== undefined && collectedLevelItems >= dotThreshold;
+    const releasedByTimer = enemyReleaseTimerMs !== null && enemyReleaseTimerMs <= 0;
+
+    if (!releasedByDots && !releasedByTimer) {
+      break;
+    }
+
     enemies = enemies.map((enemy, index) =>
       index === nextEnemyReleaseIndex ? setEnemyBehaviorMode(releaseEnemyFromHome(enemy), state.globalEnemyMode) : enemy
     );
@@ -566,7 +589,12 @@ const resolveEnemyRelease = (
       break;
     }
 
-    enemyReleaseTimerMs += state.sessionConfig.enemyReleaseScheduleMs[nextEnemyReleaseIndex - 1] ?? 0;
+    const nextReleaseDelayMs = state.sessionConfig.enemyReleaseScheduleMs[nextEnemyReleaseIndex - 1];
+    enemyReleaseTimerMs = releasedByDots
+      ? nextReleaseDelayMs ?? null
+      : enemyReleaseTimerMs === null
+        ? null
+        : enemyReleaseTimerMs + (nextReleaseDelayMs ?? 0);
   }
 
   return {
@@ -575,3 +603,6 @@ const resolveEnemyRelease = (
     enemyReleaseTimerMs
   };
 };
+
+const countCollectedLevelItems = (collectibles: GameState["collectibles"]): number =>
+  collectibles.filter((collectible) => collectible.kind !== "fruit" && !collectible.active).length;

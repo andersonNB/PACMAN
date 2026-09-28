@@ -636,3 +636,9 @@ Regla:
 - La validacion de movimiento conserva la celda de origen mientras el jugador avanza entre dos centros de tile.
 - Esto evita detenerse en el borde de una celda cuya salida esta bloqueada antes de poder tomar un giro valido en su centro.
 - Una regresion con ticks parciales cubre el avance, el giro y la continuacion por el nuevo pasillo.
+
+## 43. Fase 32 implementada
+
+- `enemyReleaseDotThresholds` permite liberar fantasmas secundarios al alcanzar progreso de dots, con el timer existente como respaldo.
+- La regla se evalua despues de la recoleccion del tick, por lo que el dot que cruza el umbral produce una salida determinista inmediata.
+- El demo usa umbrales 4, 10 y 18 para dar una presion progresiva mas cercana al ritmo arcade.
