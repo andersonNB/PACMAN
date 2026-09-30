@@ -642,3 +642,9 @@ Regla:
 - `enemyReleaseDotThresholds` permite liberar fantasmas secundarios al alcanzar progreso de dots, con el timer existente como respaldo.
 - La regla se evalua despues de la recoleccion del tick, por lo que el dot que cruza el umbral produce una salida determinista inmediata.
 - El demo usa umbrales 4, 10 y 18 para dar una presion progresiva mas cercana al ritmo arcade.
+
+## 44. Fase 33 implementada
+
+- El snapshot publica `pelletsCollected` y `pelletsTotal`, excluyendo fruit para reflejar el progreso real del nivel.
+- El HUD operativo y el overlay de debug muestran ese progreso, permitiendo observar los umbrales que liberan fantasmas.
+- Una prueba de aplicacion protege el contrato serializable y evita contar bonus fruit como pellet.

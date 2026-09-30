@@ -160,8 +160,8 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     hintValue.textContent = snapshot.status === "idle"
       ? "Press an arrow, WASD, or Enter to start"
       : snapshot.status === "ready"
-        ? "READY! Your first direction is buffered"
-      : "Arrows/WASD move | Space pause | R restart | Tab debug";
+        ? `READY! Your first direction is buffered | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`
+      : `Arrows/WASD move | Space pause | R restart | Tab debug | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`;
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -426,6 +426,7 @@ const createDebugText = (
     `release: ${snapshot.enemyReleaseTimerMs === null ? "done" : `${snapshot.enemyReleaseTimerMs}ms`}`,
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
+    `pellets: ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
     `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.strategyId}/${enemy.behaviorMode}/${enemy.navigationState}`).join(" | ")}`
   ]

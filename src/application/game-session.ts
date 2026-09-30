@@ -233,6 +233,7 @@ export const advanceGameSession = (
 };
 
 export const toGameSnapshot = (state: GameState): GameSnapshot => ({
+  ...getPelletProgress(state.collectibles),
   status: state.status,
   tick: state.tick,
   score: state.score.value,
@@ -606,3 +607,15 @@ const resolveEnemyRelease = (
 
 const countCollectedLevelItems = (collectibles: GameState["collectibles"]): number =>
   collectibles.filter((collectible) => collectible.kind !== "fruit" && !collectible.active).length;
+
+const getPelletProgress = (collectibles: GameState["collectibles"]): Readonly<{
+  pelletsCollected: number;
+  pelletsTotal: number;
+}> => {
+  const pellets = collectibles.filter((collectible) => collectible.kind !== "fruit");
+
+  return {
+    pelletsCollected: pellets.filter((collectible) => !collectible.active).length,
+    pelletsTotal: pellets.length
+  };
+};

@@ -9,7 +9,8 @@ import {
   requestDirectionForSession,
   restartGameSession,
   resumeGameSession,
-  startGameSession
+  startGameSession,
+  toGameSnapshot
 } from "./game-session.js";
 
 const LEVEL: LevelDefinition = {
@@ -151,6 +152,22 @@ describe("game session states", () => {
     expect(restartedState.lives.value).toBe(2);
     expect(restartedState.tick).toBe(0);
     expect(restartedState.player.position).toEqual({ x: 1.5, y: 1.5 });
+  });
+
+  it("publishes pellet progress without counting fruit bonuses", () => {
+    const state = createSession();
+    const firstPellet = state.collectibles.find((collectible) => collectible.kind !== "fruit");
+    const snapshot = toGameSnapshot({
+      ...state,
+      collectibles: state.collectibles.map((collectible) =>
+        collectible.id === firstPellet?.id ? { ...collectible, active: false, collected: true } : collectible
+      )
+    });
+
+    expect(snapshot.pelletsCollected).toBe(1);
+    expect(snapshot.pelletsTotal).toBe(
+      state.collectibles.filter((collectible) => collectible.kind !== "fruit").length
+    );
   });
 
   it("promotes levelCompleted to victory after the configured delay", () => {
