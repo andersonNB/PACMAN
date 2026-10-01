@@ -424,6 +424,7 @@ const createDebugText = (
     `chain: ${snapshot.frightenedChainCount}`,
     `mode: ${snapshot.globalEnemyMode} (${snapshot.globalEnemyModeTimerMs}ms)`,
     `release: ${snapshot.enemyReleaseTimerMs === null ? "done" : `${snapshot.enemyReleaseTimerMs}ms`}`,
+    `elroy: ${snapshot.elroySpeedMultiplier.toFixed(2)}x`,
     `player: (${snapshot.player.position.x.toFixed(2)}, ${snapshot.player.position.y.toFixed(2)})`,
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `pellets: ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`,

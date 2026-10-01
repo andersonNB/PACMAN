@@ -47,6 +47,7 @@ export type GameSnapshot = Readonly<{
   lives: number;
   pelletsCollected: number;
   pelletsTotal: number;
+  elroySpeedMultiplier: number;
   extraLifeAwarded: boolean;
   phaseTimerMs: number | null;
   frightenedTimerMs: number | null;

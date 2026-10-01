@@ -25,6 +25,10 @@ startBrowserDemo({
     frightenedDurationMs: 4000,
     enemyReleaseScheduleMs: [2000, 4000, 4000],
     enemyReleaseDotThresholds: [4, 10, 18],
+    elroyStages: [
+      { remainingPellets: 20, speedMultiplier: 1.15 },
+      { remainingPellets: 10, speedMultiplier: 1.3 }
+    ],
     enemyModeSchedule: [
       { mode: "scatter", durationMs: 3000 },
       { mode: "chase", durationMs: 6000 },

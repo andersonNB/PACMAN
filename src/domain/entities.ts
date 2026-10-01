@@ -72,6 +72,10 @@ export type SessionConfigState = Readonly<{
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
   enemyReleaseDotThresholds: readonly number[];
+  elroyStages: readonly Readonly<{
+    remainingPellets: number;
+    speedMultiplier: number;
+  }>[];
   enemyModeSchedule: readonly Readonly<{
     mode: "scatter" | "chase";
     durationMs: number;

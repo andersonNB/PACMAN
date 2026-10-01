@@ -648,3 +648,9 @@ Regla:
 - El snapshot publica `pelletsCollected` y `pelletsTotal`, excluyendo fruit para reflejar el progreso real del nivel.
 - El HUD operativo y el overlay de debug muestran ese progreso, permitiendo observar los umbrales que liberan fantasmas.
 - Una prueba de aplicacion protege el contrato serializable y evita contar bonus fruit como pellet.
+
+## 45. Fase 34 implementada
+
+- `elroyStages` acelera al fantasma `chase` cuando los pellets restantes cruzan umbrales configurados.
+- La velocidad base no se muta y `Frightened` mantiene prioridad, por lo que la aceleracion no contamina otros estados de navegacion.
+- El demo usa multiplicadores 1.15x y 1.30x al quedar 20 y 10 pellets; el overlay publica el multiplicador activo.

@@ -35,6 +35,10 @@ export type SessionConfig = Readonly<{
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
   enemyReleaseDotThresholds?: readonly number[];
+  elroyStages?: readonly Readonly<{
+    remainingPellets: number;
+    speedMultiplier: number;
+  }>[];
   enemyModeSchedule: readonly Readonly<{
     mode: "scatter" | "chase";
     durationMs: number;
@@ -123,6 +127,10 @@ export const advanceGameSession = (
     state.sessionConfig.fruitVisibleDurationMs,
     state.sessionConfig.fruitPointsBySpawn
   );
+  const elroySpeedMultiplier = resolveElroySpeedMultiplier(
+    collectibles,
+    state.sessionConfig.elroyStages
+  );
 
   const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
   const modeProgression = resolveGlobalEnemyMode(state, deltaMs, frightenedTimerMs);
@@ -148,7 +156,11 @@ export const advanceGameSession = (
       playerPosition: player.position,
       playerDirection: player.currentDirection,
       deltaMs,
-      speedMultiplier: enemy.behaviorMode === "frightened" ? state.sessionConfig.frightenedSpeedMultiplier : 1,
+      speedMultiplier: enemy.behaviorMode === "frightened"
+        ? state.sessionConfig.frightenedSpeedMultiplier
+        : enemy.strategyId === "chase" && enemy.navigationState === "outside"
+          ? elroySpeedMultiplier
+          : 1,
       nextRandom
     })
   );
@@ -234,6 +246,7 @@ export const advanceGameSession = (
 
 export const toGameSnapshot = (state: GameState): GameSnapshot => ({
   ...getPelletProgress(state.collectibles),
+  elroySpeedMultiplier: resolveElroySpeedMultiplier(state.collectibles, state.sessionConfig.elroyStages),
   status: state.status,
   tick: state.tick,
   score: state.score.value,
@@ -412,6 +425,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
   enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(config.enemyReleaseDotThresholds),
+  elroyStages: normalizeElroyStages(config.elroyStages),
   enemyModeSchedule: config.enemyModeSchedule,
   scoring: {
     dotPoints: config.scoring.dotPoints,
@@ -440,6 +454,17 @@ const normalizeEnemyReleaseDotThresholds = (
 ): readonly number[] =>
   enemyReleaseDotThresholds?.map((threshold) => Number.isFinite(threshold) && threshold > 0 ? threshold : null)
     .filter((threshold): threshold is number => threshold !== null) ?? [];
+
+const normalizeElroyStages = (
+  elroyStages: SessionConfig["elroyStages"]
+): readonly Readonly<{ remainingPellets: number; speedMultiplier: number }>[] =>
+  elroyStages?.filter(
+    (stage) =>
+      Number.isFinite(stage.remainingPellets) &&
+      stage.remainingPellets >= 0 &&
+      Number.isFinite(stage.speedMultiplier) &&
+      stage.speedMultiplier > 1
+  ) ?? [];
 
 const resolveFrightenedTimer = (
   state: GameState,
@@ -618,4 +643,21 @@ const getPelletProgress = (collectibles: GameState["collectibles"]): Readonly<{
     pelletsCollected: pellets.filter((collectible) => !collectible.active).length,
     pelletsTotal: pellets.length
   };
+};
+
+const resolveElroySpeedMultiplier = (
+  collectibles: GameState["collectibles"],
+  elroyStages: SessionConfigState["elroyStages"]
+): number => {
+  const remainingPellets = collectibles.filter(
+    (collectible) => collectible.kind !== "fruit" && collectible.active
+  ).length;
+
+  return elroyStages.reduce(
+    (multiplier, stage) =>
+      remainingPellets <= stage.remainingPellets
+        ? Math.max(multiplier, stage.speedMultiplier)
+        : multiplier,
+    1
+  );
 };

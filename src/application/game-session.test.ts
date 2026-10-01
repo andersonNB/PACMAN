@@ -170,6 +170,22 @@ describe("game session states", () => {
     );
   });
 
+  it("accelerates the chase enemy when the remaining pellet threshold is reached", () => {
+    const state = createSession();
+    const acceleratedState = {
+      ...state,
+      sessionConfig: {
+        ...state.sessionConfig,
+        elroyStages: [{ remainingPellets: 100, speedMultiplier: 1.5 }]
+      }
+    };
+    const normalTick = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    const acceleratedTick = advanceGameSession(acceleratedState, 100, createDeterministicRandom([0.2]));
+
+    expect(acceleratedTick.enemies[0]?.position).not.toEqual(normalTick.enemies[0]?.position);
+    expect(toGameSnapshot(acceleratedState).elroySpeedMultiplier).toBe(1.5);
+  });
+
   it("promotes levelCompleted to victory after the configured delay", () => {
     let state = createSession();
 
