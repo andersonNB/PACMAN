@@ -654,3 +654,9 @@ Regla:
 - `elroyStages` acelera al fantasma `chase` cuando los pellets restantes cruzan umbrales configurados.
 - La velocidad base no se muta y `Frightened` mantiene prioridad, por lo que la aceleracion no contamina otros estados de navegacion.
 - El demo usa multiplicadores 1.15x y 1.30x al quedar 20 y 10 pellets; el overlay publica el multiplicador activo.
+
+## 46. Fase 35 implementada
+
+- El demo de navegador usa ahora un laberinto declarativo de 21x19: cuatro spawns de fantasmas, casa central, pellets de poder y tunel lateral.
+- La topologia sigue siendo responsabilidad de `Board`; Canvas solo renderiza los tiles que recibe y no codifica rutas especificas del mapa.
+- Una prueba de nivel protege dimensiones, roster visible y conectividad del tunel para evitar regresiones visuales del escenario principal.

@@ -16,19 +16,17 @@ Practicar:
 
 ## Estado actual
 
-Esta primera entrega incluye:
+El proyecto incluye un motor de simulacion determinista, demo jugable en Canvas, loop de timestep fijo, input de teclado, ranking local y pruebas unitarias de dominio y aplicacion.
 
-- documentacion de dominio y arquitectura en [docs/architecture.md](/C:/PROYECTOS-PERSONALES/PACMAN/docs/architecture.md)
-- contratos base de `domain` y `application`
-- estructura inicial por capas
+El laberinto del navegador usa un layout arcade declarativo con tunel lateral, casa de fantasmas y cuatro fantasmas con roles diferenciados.
 
-No incluye aun:
+## Ejecutar el demo
 
-- gameplay completo
-- renderizado
-- game loop real
-- persistencia real
-- tests automatizados
+```powershell
+npm run demo:browser
+```
+
+Abre `http://127.0.0.1:4173`. Usa flechas o `WASD` para moverte, `Espacio` para pausar, `R` para reiniciar y `Tab` para el overlay de debug.
 
 ## Estructura
 
@@ -50,3 +48,8 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - `fruitVisibleDurationMs` define cuanto permanece visible el bonus fruit tras activarse.
 - La simulacion fija descuenta el temporizador; al expirar, el fruit no vuelve a aparecer en el nivel.
 - El snapshot diferencia una expiracion de una recoleccion para evitar feedback visual o puntos falsos.
+
+## Fase 35: laberinto arcade
+
+- El demo visual usa un tablero 21x19 con cuatro spawns de enemigos, tunel lateral y ghost house central.
+- El nivel sigue siendo una definicion declarativa consumida por el dominio; el renderer no contiene rutas ni colisiones codificadas.

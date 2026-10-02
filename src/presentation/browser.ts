@@ -269,6 +269,7 @@ const getElement = (root: HTMLElement, role: string): HTMLElement => {
 
 const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLElement => {
   root.innerHTML = "";
+  ensureResponsiveDemoStyles();
 
   const shell = document.createElement("div");
   shell.style.minHeight = "100vh";
@@ -291,7 +292,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 22 Arcade HUD</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 35 Arcade Maze</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
@@ -316,6 +317,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   `;
 
   const content = document.createElement("div");
+  content.className = "pacman-demo-content";
   content.style.display = "grid";
   content.style.gridTemplateColumns = "minmax(0, 1.7fr) minmax(280px, 0.9fr)";
   content.style.gap = "18px";
@@ -325,6 +327,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   leftColumn.style.gap = "18px";
 
   const rightColumn = document.createElement("div");
+  rightColumn.className = "pacman-demo-sidebar";
   rightColumn.style.display = "grid";
   rightColumn.style.gap = "18px";
 
@@ -363,6 +366,25 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   root.append(shell);
 
   return panel;
+};
+
+const ensureResponsiveDemoStyles = (): void => {
+  if (document.getElementById("pacman-demo-responsive-styles") !== null) {
+    return;
+  }
+
+  const styles = document.createElement("style");
+  styles.id = "pacman-demo-responsive-styles";
+  styles.textContent = `
+    @media (max-width: 820px) {
+      .pacman-demo-content { grid-template-columns: minmax(0, 1fr) !important; }
+      .pacman-demo-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .pacman-demo-sidebar { grid-template-columns: minmax(0, 1fr); }
+    }
+  `;
+  document.head.append(styles);
 };
 
 const createSideCard = (title: string, description: string): HTMLElement => {
