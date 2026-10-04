@@ -660,3 +660,9 @@ Regla:
 - El demo de navegador usa ahora un laberinto declarativo de 21x19: cuatro spawns de fantasmas, casa central, pellets de poder y tunel lateral.
 - La topologia sigue siendo responsabilidad de `Board`; Canvas solo renderiza los tiles que recibe y no codifica rutas especificas del mapa.
 - Una prueba de nivel protege dimensiones, roster visible y conectividad del tunel para evitar regresiones visuales del escenario principal.
+
+## 47. Fase 36 implementada
+
+- Durante `levelCompleted`, el adaptador Canvas alterna las paredes del laberinto entre su color normal y blanco, y oculta actores y collectibles.
+- El destello se calcula con el reloj de presentacion y el `GameStatus` publicado por el snapshot; la simulacion no conoce canvas, frames ni colores.
+- Una prueba de presentacion fija el contrato de activacion y evita que el destello aparezca en estados como `running` o `victory`.

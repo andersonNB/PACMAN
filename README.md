@@ -53,3 +53,8 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 
 - El demo visual usa un tablero 21x19 con cuatro spawns de enemigos, tunel lateral y ghost house central.
 - El nivel sigue siendo una definicion declarativa consumida por el dominio; el renderer no contiene rutas ni colisiones codificadas.
+
+## Fase 36: cierre visual de nivel
+
+- Durante `levelCompleted`, el laberinto alterna entre azul y blanco mientras el dominio resuelve el temporizador hacia `Victory`.
+- Los actores se ocultan durante el destello para reproducir la transicion visual del arcade sin acoplar el renderer a la simulacion.

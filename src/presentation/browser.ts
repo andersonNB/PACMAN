@@ -13,12 +13,13 @@ import type { ScoreEntry, ScoreRepository } from "../application/ports.js";
 import { createBoard, type LevelDefinition } from "../domain/board.js";
 import { createDeterministicRandom } from "../domain/enemy.js";
 import type { GameState } from "../domain/entities.js";
-import type { Direction } from "../domain/value-objects.js";
+import type { Direction, GameStatus } from "../domain/value-objects.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
 const SCORE_POPUP_DURATION_MS = 700;
 const FRUIT_WARNING_DURATION_MS = 2_000;
+const LEVEL_COMPLETION_FLASH_INTERVAL_MS = 120;
 
 type ScorePopup = Readonly<{
   score: number;
@@ -45,6 +46,8 @@ const COLORS = {
   vector: "#ff9b3d",
   frightened: "#2f63ff",
   frightenedFlash: "#f3f6ff",
+  levelCompleteWall: "#f4f8ff",
+  levelCompleteGlow: "rgba(244, 248, 255, 0.45)",
   pupil: "#102b72",
   debug: "rgba(150, 175, 204, 0.22)"
 } as const;
@@ -165,18 +168,22 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
-    drawBoard(context, board);
-    drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
-    drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
-    drawPlayer(
-      context,
-      previousSnapshot,
-      snapshot,
-      alpha,
-      resolvePlayerDeathProgress(snapshot, config.sessionConfig),
-      presentationTimeMs
-    );
-    drawScorePopups(context, scorePopups, presentationTimeMs);
+    const levelCompletionFlash = isLevelCompletionFlashFrame(snapshot.status, presentationTimeMs);
+    drawBoard(context, board, levelCompletionFlash);
+
+    if (snapshot.status !== "levelCompleted") {
+      drawCollectibles(context, snapshot.collectibles, presentationTimeMs);
+      drawEnemies(context, previousSnapshot, snapshot, alpha, presentationTimeMs);
+      drawPlayer(
+        context,
+        previousSnapshot,
+        snapshot,
+        alpha,
+        resolvePlayerDeathProgress(snapshot, config.sessionConfig),
+        presentationTimeMs
+      );
+      drawScorePopups(context, scorePopups, presentationTimeMs);
+    }
 
     if (debugEnabled) {
       drawDebugGrid(context, board.width, board.height);
@@ -457,7 +464,11 @@ const createDebugText = (
     .join("");
 };
 
-const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof createBoard>): void => {
+const drawBoard = (
+  context: CanvasRenderingContext2D,
+  board: ReturnType<typeof createBoard>,
+  levelCompletionFlash: boolean
+): void => {
   context.fillStyle = COLORS.background;
   context.fillRect(0, 0, board.width * TILE_SIZE, board.height * TILE_SIZE);
 
@@ -466,9 +477,9 @@ const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof c
     const y = tile.position.row * TILE_SIZE;
 
     if (tile.kind === "wall") {
-      context.fillStyle = COLORS.wallGlow;
+      context.fillStyle = levelCompletionFlash ? COLORS.levelCompleteGlow : COLORS.wallGlow;
       context.fillRect(x + 3, y + 3, TILE_SIZE - 6, TILE_SIZE - 6);
-      context.fillStyle = COLORS.wall;
+      context.fillStyle = levelCompletionFlash ? COLORS.levelCompleteWall : COLORS.wall;
       roundRect(context, x + 6, y + 6, TILE_SIZE - 12, TILE_SIZE - 12, 9);
       context.fill();
       continue;
@@ -485,6 +496,9 @@ const drawBoard = (context: CanvasRenderingContext2D, board: ReturnType<typeof c
     context.fillRect(x, y, TILE_SIZE, TILE_SIZE);
   }
 };
+
+export const isLevelCompletionFlashFrame = (status: GameStatus, presentationTimeMs: number): boolean =>
+  status === "levelCompleted" && Math.floor(presentationTimeMs / LEVEL_COMPLETION_FLASH_INTERVAL_MS) % 2 === 0;
 
 const drawCollectibles = (
   context: CanvasRenderingContext2D,
@@ -801,7 +815,7 @@ const drawStatusOverlay = (
   width: number,
   height: number
 ): void => {
-  if (status === "running" || status === "playerDying") {
+  if (status === "running" || status === "playerDying" || status === "levelCompleted") {
     return;
   }
 
