@@ -21,6 +21,7 @@ startBrowserDemo({
     fruitPointsBySpawn: [100, 300],
     fruitVisibleDurationMs: 8_000,
     frightenedSpeedMultiplier: 0.65,
+    returningHomeSpeedMultiplier: 1.55,
     readyDelayMs: 1800,
     frightenedDurationMs: 4000,
     enemyReleaseScheduleMs: [2000, 4000, 4000],

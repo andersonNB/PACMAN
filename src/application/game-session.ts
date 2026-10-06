@@ -31,6 +31,7 @@ export type SessionConfig = Readonly<{
   fruitPointsBySpawn?: readonly number[];
   fruitVisibleDurationMs?: number;
   frightenedSpeedMultiplier?: number;
+  returningHomeSpeedMultiplier?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -156,7 +157,9 @@ export const advanceGameSession = (
       playerPosition: player.position,
       playerDirection: player.currentDirection,
       deltaMs,
-      speedMultiplier: enemy.behaviorMode === "frightened"
+      speedMultiplier: enemy.navigationState === "returningHome"
+        ? state.sessionConfig.returningHomeSpeedMultiplier
+        : enemy.behaviorMode === "frightened"
         ? state.sessionConfig.frightenedSpeedMultiplier
         : enemy.strategyId === "chase" && enemy.navigationState === "outside"
           ? elroySpeedMultiplier
@@ -420,6 +423,10 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   frightenedSpeedMultiplier:
     config.frightenedSpeedMultiplier !== undefined && config.frightenedSpeedMultiplier > 0
       ? config.frightenedSpeedMultiplier
+      : 1,
+  returningHomeSpeedMultiplier:
+    config.returningHomeSpeedMultiplier !== undefined && config.returningHomeSpeedMultiplier > 0
+      ? config.returningHomeSpeedMultiplier
       : 1,
   readyDelayMs: config.readyDelayMs ?? 0,
   frightenedDurationMs: config.frightenedDurationMs,

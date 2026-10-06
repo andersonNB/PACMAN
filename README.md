@@ -58,3 +58,8 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 
 - Durante `levelCompleted`, el laberinto alterna entre azul y blanco mientras el dominio resuelve el temporizador hacia `Victory`.
 - Los actores se ocultan durante el destello para reproducir la transicion visual del arcade sin acoplar el renderer a la simulacion.
+
+## Fase 37: retorno rapido a casa
+
+- Los fantasmas que fueron comidos regresan a la casa a una velocidad configurable, independiente de los multiplicadores `Frightened` y Elroy.
+- El demo usa `1.55x` para hacer visible el retorno de los ojos al centro del laberinto.

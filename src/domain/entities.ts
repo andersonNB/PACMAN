@@ -68,6 +68,7 @@ export type SessionConfigState = Readonly<{
   fruitPointsBySpawn: readonly number[];
   fruitVisibleDurationMs: number | null;
   frightenedSpeedMultiplier: number;
+  returningHomeSpeedMultiplier: number;
   readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];

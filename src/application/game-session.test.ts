@@ -186,6 +186,36 @@ describe("game session states", () => {
     expect(toGameSnapshot(acceleratedState).elroySpeedMultiplier).toBe(1.5);
   });
 
+  it("accelerates returning enemies without changing their base velocity", () => {
+    const state = createSession();
+    const returningState = {
+      ...state,
+      enemies: state.enemies.map((enemy, index) =>
+        index === 0
+          ? {
+              ...enemy,
+              position: { x: 3.5, y: 5.5 },
+              currentDirection: "left" as const,
+              navigationState: "returningHome" as const
+            }
+          : enemy
+      )
+    };
+    const acceleratedState = {
+      ...returningState,
+      sessionConfig: {
+        ...returningState.sessionConfig,
+        returningHomeSpeedMultiplier: 1.5
+      }
+    };
+
+    const normalTick = advanceGameSession(returningState, 100, createDeterministicRandom([0.2]));
+    const acceleratedTick = advanceGameSession(acceleratedState, 100, createDeterministicRandom([0.2]));
+
+    expect(acceleratedTick.enemies[0]?.position.x).toBeLessThan(normalTick.enemies[0]?.position.x ?? Infinity);
+    expect(acceleratedTick.enemies[0]?.velocity).toEqual(normalTick.enemies[0]?.velocity);
+  });
+
   it("promotes levelCompleted to victory after the configured delay", () => {
     let state = createSession();
 

@@ -666,3 +666,9 @@ Regla:
 - Durante `levelCompleted`, el adaptador Canvas alterna las paredes del laberinto entre su color normal y blanco, y oculta actores y collectibles.
 - El destello se calcula con el reloj de presentacion y el `GameStatus` publicado por el snapshot; la simulacion no conoce canvas, frames ni colores.
 - Una prueba de presentacion fija el contrato de activacion y evita que el destello aparezca en estados como `running` o `victory`.
+
+## 48. Fase 37 implementada
+
+- `returningHomeSpeedMultiplier` acelera a los fantasmas en navegacion `returningHome`, sin mutar la velocidad base de la entidad.
+- La prioridad del multiplicador evita que Elroy o `Frightened` modifiquen el retorno: ese trayecto tiene su propia regla de movimiento.
+- El demo configura `1.55x` y una prueba de aplicacion compara el desplazamiento normal contra el acelerado.
