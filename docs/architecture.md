@@ -672,3 +672,16 @@ Regla:
 - `returningHomeSpeedMultiplier` acelera a los fantasmas en navegacion `returningHome`, sin mutar la velocidad base de la entidad.
 - La prioridad del multiplicador evita que Elroy o `Frightened` modifiquen el retorno: ese trayecto tiene su propia regla de movimiento.
 - El demo configura `1.55x` y una prueba de aplicacion compara el desplazamiento normal contra el acelerado.
+
+## 49. Fase 38 implementada
+
+- Objetivo e historia: como jugador, quiero ver a los fantasmas comidos regresar, recuperarse dentro de casa y salir de nuevo.
+- Dominio: llegar al tile de origen cambia `returningHome` a `insideHome` y detiene el movimiento restante de ese tick.
+- Aplicacion: programa `reentryReleaseTimerMs` con `returningHomeReleaseDelayMs` (1500 ms por defecto, cero permite salida inmediata). La espera comienza al final del tick de llegada; la precision queda limitada al timestep fijo.
+- Al vencer la espera, `releaseEnemyFromHome` limpia el timer, entra en `leavingHome` y recupera el modo global vigente. Solo el tiempo sobrante del tick se usa para moverse.
+- Presentacion: el snapshot expone el timer y el overlay lo muestra; Canvas dibuja el cuerpo dentro de casa a partir del estado publicado.
+- Criterios y pruebas: llegada sin movimiento residual, espera determinista, pausa, reinicio, movimiento proporcional al tiempo sobrante y ausencia de puntos por colisiones con fantasmas dentro de casa.
+- Problema y opciones: reutilizar el calendario inicial mezclaria la liberacion del roster con retornos independientes. Se elige un timer por enemigo, que permite varias recuperaciones simultaneas con un campo adicional en la entidad.
+- Riesgo: un pellet nuevo durante el retorno no debe transformar los ojos en un fantasma comestible; los retornos conservan su modo y las colisiones comestibles exigen `outside`.
+- Defensa en entrevista: el tiempo pertenece a la simulacion, mientras el renderer solo observa el snapshot. No se usan `setTimeout` ni relojes visuales para una regla de gameplay.
+- Modulos: `domain/enemy.ts` y `entities.ts`, `application/game-session.ts` y `contracts.ts`, demo y overlay de presentacion.

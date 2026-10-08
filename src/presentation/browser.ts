@@ -458,7 +458,7 @@ const createDebugText = (
     `direction: ${snapshot.player.currentDirection} -> ${snapshot.player.requestedDirection}`,
     `pellets: ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`,
     `active collectibles: ${snapshot.collectibles.filter((collectible) => collectible.active).length}`,
-    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.strategyId}/${enemy.behaviorMode}/${enemy.navigationState}`).join(" | ")}`
+    `enemies: ${snapshot.enemies.map((enemy) => `${enemy.id}:${enemy.strategyId}/${enemy.behaviorMode}/${enemy.navigationState}${enemy.reentryReleaseTimerMs === null ? "" : `/reentry ${(enemy.reentryReleaseTimerMs / 1000).toFixed(1)}s`}`).join(" | ")}`
   ]
     .map((line) => `<div>${escapeHtml(line)}</div>`)
     .join("");

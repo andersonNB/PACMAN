@@ -32,6 +32,7 @@ export type SessionConfig = Readonly<{
   fruitVisibleDurationMs?: number;
   frightenedSpeedMultiplier?: number;
   returningHomeSpeedMultiplier?: number;
+  returningHomeReleaseDelayMs?: number;
   readyDelayMs?: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];
@@ -143,20 +144,33 @@ export const advanceGameSession = (
   const enemiesWithMode = applyGlobalEnemyMode(releaseProgression.enemies, modeProgression.mode);
 
   const enemiesWithCurrentMode = collectionResult.frightenedTriggered
-    ? enemiesWithMode.map((enemy) => setEnemyBehaviorMode(enemy, "frightened"))
+    ? enemiesWithMode.map((enemy) => enemy.navigationState === "returningHome"
+      ? enemy
+      : setEnemyBehaviorMode(enemy, "frightened"))
     : enemiesWithMode;
   const shouldReverseEnemies = collectionResult.frightenedTriggered || modeProgression.mode !== state.globalEnemyMode;
   const enemiesWithDirection = shouldReverseEnemies
     ? enemiesWithCurrentMode.map(reverseEnemyDirection)
     : enemiesWithCurrentMode;
 
-  const enemies = enemiesWithDirection.map((enemy) =>
-    advanceEnemy({
+  const enemies = enemiesWithDirection.map((initialEnemy) => {
+    let enemy = initialEnemy;
+    let movementDeltaMs = deltaMs;
+
+    if (enemy.navigationState === "insideHome" && enemy.reentryReleaseTimerMs !== null) {
+      const remainingMs = Math.max(enemy.reentryReleaseTimerMs - deltaMs, 0);
+      movementDeltaMs = Math.max(deltaMs - enemy.reentryReleaseTimerMs, 0);
+      enemy = remainingMs > 0
+        ? { ...enemy, reentryReleaseTimerMs: remainingMs }
+        : setEnemyBehaviorMode(releaseEnemyFromHome(enemy), modeProgression.mode);
+    }
+
+    const advancedEnemy = advanceEnemy({
       board: state.board,
       enemy,
       playerPosition: player.position,
       playerDirection: player.currentDirection,
-      deltaMs,
+      deltaMs: movementDeltaMs,
       speedMultiplier: enemy.navigationState === "returningHome"
         ? state.sessionConfig.returningHomeSpeedMultiplier
         : enemy.behaviorMode === "frightened"
@@ -165,8 +179,17 @@ export const advanceGameSession = (
           ? elroySpeedMultiplier
           : 1,
       nextRandom
-    })
-  );
+    });
+
+    if (enemy.navigationState === "returningHome" && advancedEnemy.navigationState === "insideHome") {
+      const delayMs = state.sessionConfig.returningHomeReleaseDelayMs;
+      return delayMs === 0
+        ? setEnemyBehaviorMode(releaseEnemyFromHome(advancedEnemy), modeProgression.mode)
+        : { ...advancedEnemy, reentryReleaseTimerMs: delayMs };
+    }
+
+    return advancedEnemy;
+  });
 
   const collidedEnemies = enemies.filter((enemy) =>
     detectEnemyCollision({
@@ -201,7 +224,7 @@ export const advanceGameSession = (
 
   const frightenedCollisionIds = new Set(
     collidedEnemies
-      .filter((enemy) => enemy.behaviorMode === "frightened")
+      .filter((enemy) => enemy.navigationState === "outside" && enemy.behaviorMode === "frightened")
       .map((enemy) => enemy.id)
   );
   const frightenedCollisionCount = frightenedCollisionIds.size;
@@ -272,7 +295,8 @@ export const toGameSnapshot = (state: GameState): GameSnapshot => ({
     position: enemy.position,
     currentDirection: enemy.currentDirection,
     behaviorMode: enemy.behaviorMode,
-    navigationState: enemy.navigationState
+    navigationState: enemy.navigationState,
+    reentryReleaseTimerMs: enemy.reentryReleaseTimerMs
   })),
   collectibles: state.collectibles.map((collectible) => ({
     id: collectible.id,
@@ -429,6 +453,11 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
       ? config.returningHomeSpeedMultiplier
       : 1,
   readyDelayMs: config.readyDelayMs ?? 0,
+  returningHomeReleaseDelayMs:
+    config.returningHomeReleaseDelayMs !== undefined &&
+    Number.isFinite(config.returningHomeReleaseDelayMs) && config.returningHomeReleaseDelayMs >= 0
+      ? config.returningHomeReleaseDelayMs
+      : 1500,
   frightenedDurationMs: config.frightenedDurationMs,
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
   enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(config.enemyReleaseDotThresholds),

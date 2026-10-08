@@ -39,6 +39,7 @@ export const createEnemy = (params: {
   velocity: params.velocity,
   behaviorMode: params.behaviorMode ?? "scatter",
   navigationState: params.navigationState ?? "outside",
+  reentryReleaseTimerMs: null,
   strategyId: params.strategyId,
   homeTile: params.spawnTile,
   scatterTargetTile: params.scatterTargetTile
@@ -96,7 +97,8 @@ export const reverseEnemyDirection = (enemy: Enemy): Enemy =>
 export const releaseEnemyFromHome = (enemy: Enemy): Enemy => ({
   ...enemy,
   currentDirection: "up",
-  navigationState: "leavingHome"
+  navigationState: "leavingHome",
+  reentryReleaseTimerMs: null
 });
 
 export const markEnemyAsReturningHome = (enemy: Enemy): Enemy => ({
@@ -110,7 +112,8 @@ export const resetEnemyToHome = (enemy: Enemy): Enemy => ({
   position: tileToWorldPosition(enemy.homeTile),
   currentDirection: "left",
   behaviorMode: getDefaultEnemyBehaviorMode(enemy),
-  navigationState: "outside"
+  navigationState: "insideHome",
+  reentryReleaseTimerMs: null
 });
 
 export const advanceEnemy = (params: {
@@ -172,6 +175,7 @@ export const advanceEnemy = (params: {
 
     if (enemy.navigationState === "returningHome" && isAtTileCenter(enemy.position) && sameTile(worldToTilePosition(enemy.position), enemy.homeTile)) {
       enemy = resetEnemyToHome(enemy);
+      break;
     }
 
     remainingDistance -= stepDistance;

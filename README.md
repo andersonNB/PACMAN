@@ -63,3 +63,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 
 - Los fantasmas que fueron comidos regresan a la casa a una velocidad configurable, independiente de los multiplicadores `Frightened` y Elroy.
 - El demo usa `1.55x` para hacer visible el retorno de los ojos al centro del laberinto.
+
+## Fase 38: reentrada de fantasmas
+
+- Al llegar a casa, el fantasma recupera su cuerpo, espera 1.5 segundos y vuelve a salir.
+- `returningHomeReleaseDelayMs` configura esa espera; `Tab` muestra la cuenta regresiva `reentry` en debug.
+- La pausa congela el temporizador y reiniciar elimina cualquier espera pendiente.

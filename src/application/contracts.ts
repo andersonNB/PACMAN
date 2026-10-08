@@ -28,6 +28,7 @@ export type EnemySnapshot = Readonly<{
   currentDirection: Direction;
   behaviorMode: EnemyBehaviorMode;
   navigationState: EnemyNavigationState;
+  reentryReleaseTimerMs: number | null;
 }>;
 
 export type CollectibleSnapshot = Readonly<{

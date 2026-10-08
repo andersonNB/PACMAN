@@ -45,6 +45,7 @@ export type Enemy = Readonly<{
   velocity: Velocity;
   behaviorMode: EnemyBehaviorMode;
   navigationState: EnemyNavigationState;
+  reentryReleaseTimerMs: number | null;
   strategyId: string;
   homeTile: TilePosition;
   scatterTargetTile: TilePosition;
@@ -69,6 +70,7 @@ export type SessionConfigState = Readonly<{
   fruitVisibleDurationMs: number | null;
   frightenedSpeedMultiplier: number;
   returningHomeSpeedMultiplier: number;
+  returningHomeReleaseDelayMs: number;
   readyDelayMs: number;
   frightenedDurationMs: number;
   enemyReleaseScheduleMs: readonly number[];

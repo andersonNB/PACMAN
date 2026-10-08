@@ -17,7 +17,7 @@ const RETURN_LEVEL: LevelDefinition = {
 };
 
 describe("enemy returningHome", () => {
-  it("moves toward home and restores outside state when it arrives", () => {
+  it("stops inside home on arrival even when the tick has movement remaining", () => {
     const board = createBoard(RETURN_LEVEL);
     const enemy = markEnemyAsReturningHome({
       ...createEnemy({
@@ -36,11 +36,12 @@ describe("enemy returningHome", () => {
       enemy,
       playerPosition: tileToWorldPosition({ row: 1, column: 1 }),
       playerDirection: "left",
-      deltaMs: 500,
+      deltaMs: 1000,
       nextRandom: createDeterministicRandom([0.2])
     });
 
     expect(movedEnemy.position).toEqual({ x: 1.5, y: 5.5 });
-    expect(movedEnemy.navigationState).toBe("outside");
+    expect(movedEnemy.navigationState).toBe("insideHome");
+    expect(movedEnemy.reentryReleaseTimerMs).toBeNull();
   });
 });
