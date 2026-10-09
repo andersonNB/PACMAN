@@ -685,3 +685,17 @@ Regla:
 - Riesgo: un pellet nuevo durante el retorno no debe transformar los ojos en un fantasma comestible; los retornos conservan su modo y las colisiones comestibles exigen `outside`.
 - Defensa en entrevista: el tiempo pertenece a la simulacion, mientras el renderer solo observa el snapshot. No se usan `setTimeout` ni relojes visuales para una regla de gameplay.
 - Modulos: `domain/enemy.ts` y `entities.ts`, `application/game-session.ts` y `contracts.ts`, demo y overlay de presentacion.
+
+## 50. Fase 39 implementada
+
+- Objetivo e historia: como jugador, quiero que los fantasmas comidos encuentren la casa aunque necesiten alejarse de ella para rodear paredes.
+- Problema: la distancia Manhattan local no considera obstaculos y puede provocar vueltas o recorridos innecesarios durante el regreso.
+- Opciones: conservar el criterio voraz, usar BFS o introducir A*. Se elige BFS porque todas las conexiones del tablero tienen el mismo coste y el mapa actual es pequeno.
+- Diseno: `domain/enemy-navigation.ts` recibe `BoardQuery`, origen, destino y estado de navegacion; devuelve la primera direccion de una ruta minima o `null` cuando no hay ruta.
+- Las consultas del tablero conservan la autoridad sobre paredes, acceso a casa y conexiones laterales. La busqueda no accede al estado mutable de partida ni al renderer.
+- `returningHome` y `leavingHome` usan la ruta en cada centro de celda. El retorno admite invertir direccion; los modos normales conservan sus estrategias y regla de no invertir.
+- Criterios de aceptacion: desvio alrededor de paredes, uso de tuneles cuando acortan la ruta, acceso contextual a casa, desempate determinista y parada ante destinos inaccesibles. Si el fantasma ya esta en casa, se recupera antes de intentar otro movimiento.
+- Tests: rutas puras y movimiento integrado; los cuatro fantasmas del demo regresan desde cuatro corredores distantes y vuelven a salir.
+- Coste: O(V + E) por decision y memoria O(V). Se recalcula en centros de celda; mapas mayores podrian usar campos de distancia precalculados por destino y estado.
+- Riesgos: los mapas desconectados detienen el regreso; esta fase no añade validacion global de conectividad. Los empates siguen el orden estable de direcciones del tablero.
+- Pregunta de entrevista: por que BFS garantiza rutas minimas aqui y cuando seria adecuado A*? Defensa: costes uniformes, topologia centralizada y pruebas independientes de Canvas; las conexiones de tunel deben considerarse al definir una heuristica de A*.

@@ -44,4 +44,70 @@ describe("enemy returningHome", () => {
     expect(movedEnemy.navigationState).toBe("insideHome");
     expect(movedEnemy.reentryReleaseTimerMs).toBeNull();
   });
+
+  it("can reverse at a junction to take the shortest route home", () => {
+    const board = createBoard({
+      id: "return-reversal",
+      rows: ["#######", "#E...P#", "#.....#", "#######"]
+    });
+    const enemy = markEnemyAsReturningHome({
+      ...createEnemy({
+        id: "returning",
+        spawnTile: { row: 1, column: 1 },
+        velocity: { unitsPerSecond: 2 },
+        strategyId: "chase",
+        scatterTargetTile: { row: 1, column: 5 },
+        initialDirection: "right"
+      }),
+      position: tileToWorldPosition({ row: 1, column: 2 })
+    });
+    const moved = advanceEnemy({
+      board, enemy,
+      playerPosition: tileToWorldPosition(board.playerSpawn),
+      playerDirection: "left", deltaMs: 500,
+      nextRandom: () => { throw new Error("Return routing must not consume RNG"); }
+    });
+
+    expect(moved.navigationState).toBe("insideHome");
+    expect(moved.position).toEqual(tileToWorldPosition(enemy.homeTile));
+  });
+
+  it("stays still when home is unreachable", () => {
+    const board = createBoard({
+      id: "blocked-return",
+      rows: ["#######", "#E.#.P#", "#######"]
+    });
+    const enemy = markEnemyAsReturningHome({
+      ...createEnemy({
+        id: "returning", spawnTile: board.enemySpawns[0]!,
+        velocity: { unitsPerSecond: 2 }, strategyId: "chase",
+        scatterTargetTile: board.playerSpawn, initialDirection: "left"
+      }),
+      position: tileToWorldPosition(board.playerSpawn)
+    });
+    const moved = advanceEnemy({
+      board, enemy, playerPosition: enemy.position,
+      playerDirection: "left", deltaMs: 2000,
+      nextRandom: createDeterministicRandom([0])
+    });
+
+    expect(moved).toEqual(enemy);
+  });
+
+  it("recovers an enemy that is already centered at home instead of moving away", () => {
+    const board = createBoard(RETURN_LEVEL);
+    const enemy = markEnemyAsReturningHome(createEnemy({
+      id: "returning", spawnTile: { row: 5, column: 1 },
+      velocity: { unitsPerSecond: 2 }, strategyId: "chase",
+      scatterTargetTile: board.playerSpawn
+    }));
+    const moved = advanceEnemy({
+      board, enemy, playerPosition: tileToWorldPosition(board.playerSpawn),
+      playerDirection: "left", deltaMs: 500,
+      nextRandom: createDeterministicRandom([0])
+    });
+
+    expect(moved.navigationState).toBe("insideHome");
+    expect(moved.position).toEqual(enemy.position);
+  });
 });

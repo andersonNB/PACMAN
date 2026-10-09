@@ -1,6 +1,7 @@
 import type { Board, Enemy } from "./entities.js";
 import { createBoardQuery } from "./board.js";
 import { enemyStrategies } from "./enemy-strategies.js";
+import { chooseShortestEnemyDirection } from "./enemy-navigation.js";
 import { tileToWorldPosition, worldToTilePosition } from "./player.js";
 import type { Direction, TilePosition, Velocity, WorldPosition } from "./value-objects.js";
 
@@ -133,13 +134,22 @@ export const advanceEnemy = (params: {
   }
 
   const speedMultiplier = Math.max(0, params.speedMultiplier ?? 1);
+  const boardQuery = createBoardQuery(board);
   let remainingDistance = enemy.velocity.unitsPerSecond * speedMultiplier * (deltaMs / 1000);
 
   while (remainingDistance > POSITION_EPSILON) {
     const currentTile = worldToTilePosition(enemy.position);
 
     if (isAtTileCenter(enemy.position)) {
-      enemy = resolveEnemyDirectionAtCenter(
+      if (enemy.navigationState === "returningHome" && sameTile(currentTile, enemy.homeTile)) {
+        return resetEnemyToHome(enemy);
+      }
+
+      if (enemy.navigationState === "leavingHome" && reachedHomeExit(enemy, board)) {
+        enemy = { ...enemy, navigationState: "outside" };
+      }
+
+      const directedEnemy = resolveEnemyDirectionAtCenter(
         enemy,
         currentTile,
         worldToTilePosition(playerPosition),
@@ -147,9 +157,12 @@ export const advanceEnemy = (params: {
         board,
         nextRandom
       );
+      if (directedEnemy === null) {
+        break;
+      }
+      enemy = directedEnemy;
     }
 
-    const boardQuery = createBoardQuery(board);
     const activeDirection = enemy.currentDirection;
 
     if (!boardQuery.getAllowedDirectionsForEnemy(currentTile, enemy.navigationState).includes(activeDirection)) {
@@ -214,12 +227,20 @@ const resolveEnemyDirectionAtCenter = (
   playerDirection: Direction,
   board: Board,
   nextRandom: RandomNumberSource
-): Enemy => {
+): Enemy | null => {
   const boardQuery = createBoardQuery(board);
   const availableDirections = boardQuery.getAllowedDirectionsForEnemy(currentTile, enemy.navigationState);
 
   if (availableDirections.length === 0) {
-    return enemy;
+    return null;
+  }
+
+  if (enemy.navigationState === "returningHome" || enemy.navigationState === "leavingHome") {
+    const target = enemy.navigationState === "returningHome"
+      ? enemy.homeTile
+      : getHomeExitTargetTile(board, enemy.homeTile);
+    const direction = chooseShortestEnemyDirection(boardQuery, currentTile, target, enemy.navigationState);
+    return direction === null ? null : { ...enemy, currentDirection: direction };
   }
 
   const nonReverseDirections = availableDirections.filter(
@@ -230,11 +251,7 @@ const resolveEnemyDirectionAtCenter = (
     nonReverseDirections.length > 0 ? nonReverseDirections : availableDirections;
 
   const randomValue = nextRandom();
-  const chosenDirection = enemy.navigationState === "returningHome"
-    ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.homeTile, "nearest") ?? enemy.currentDirection
-    : enemy.navigationState === "leavingHome"
-      ? chooseDirectionByTarget(candidateDirections, currentTile, getHomeExitTargetTile(board, enemy.homeTile), "nearest") ?? enemy.currentDirection
-      : enemy.behaviorMode === "scatter"
+  const chosenDirection = enemy.behaviorMode === "scatter"
         ? chooseDirectionByTarget(candidateDirections, currentTile, enemy.scatterTargetTile, "nearest") ?? enemy.currentDirection
         : (
             enemy.behaviorMode === "frightened"

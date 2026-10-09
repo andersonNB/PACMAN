@@ -69,3 +69,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Al llegar a casa, el fantasma recupera su cuerpo, espera 1.5 segundos y vuelve a salir.
 - `returningHomeReleaseDelayMs` configura esa espera; `Tab` muestra la cuenta regresiva `reentry` en debug.
 - La pausa congela el temporizador y reiniciar elimina cualquier espera pendiente.
+
+## Fase 39: rutas fiables hacia la casa
+
+- Los ojos y los fantasmas que salen de casa calculan rutas minimas con BFS, respetando paredes, accesos y tuneles.
+- Durante el retorno pueden invertir direccion para seguir la ruta; si la casa es inaccesible, se detienen.
+- En el demo, come un fantasma con un potenciador para observar su regreso y nueva salida.
