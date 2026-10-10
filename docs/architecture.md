@@ -699,3 +699,16 @@ Regla:
 - Coste: O(V + E) por decision y memoria O(V). Se recalcula en centros de celda; mapas mayores podrian usar campos de distancia precalculados por destino y estado.
 - Riesgos: los mapas desconectados detienen el regreso; esta fase no añade validacion global de conectividad. Los empates siguen el orden estable de direcciones del tablero.
 - Pregunta de entrevista: por que BFS garantiza rutas minimas aqui y cuando seria adecuado A*? Defensa: costes uniformes, topologia centralizada y pruebas independientes de Canvas; las conexiones de tunel deben considerarse al definir una heuristica de A*.
+
+## 51. Fase 40 implementada
+
+- Objetivo e historia: como jugador, quiero moverme y controlar la partida desde una pantalla tactil o un raton sin necesitar teclado.
+- Diseno: `infrastructure/browser-controls.ts` traduce activaciones de botones a callbacks tipados. Teclado y botones comparten comandos en `presentation/browser.ts`, que invocan los casos de uso existentes.
+- Decisiones: botones HTML nativos con `click` en lugar de gestos o repeticion por pulsacion. La direccion solicitada ya queda almacenada por el dominio, por lo que no necesita eventos repetidos ni nuevos temporizadores.
+- Accesibilidad: etiquetas para las direcciones, foco visible, objetivos tactiles de al menos 44px y estado `aria-pressed` para debug. Los botones deshabilitan Start y Pause cuando no aplican; Pause cambia a Resume durante la pausa.
+- El atajo de debug cambia de Tab a G: Tab queda disponible para recorrer controles. Enter/Espacio sobre botones usan la activacion nativa sin ejecutar tambien el handler global.
+- Responsive: altura automatica del canvas mantiene su proporcion; HUD de dos columnas y padding reducido a 560px o menos.
+- Criterios: una direccion inicia y se almacena durante Ready; pausa/reanudacion funciona con boton o teclado; reinicio restaura partida y acumulador; comandos desconocidos se ignoran.
+- Pruebas: traduccion de direcciones y comandos de ciclo de vida, suite completa y verificacion en navegador de inicio con cruceta, pausa, reanudacion con Espacio, reinicio y vista de 360px sin desbordamiento horizontal.
+- Coste y riesgos: se añade un adaptador DOM y sus listeners deben retirarse al cerrar. Esta fase incorpora cruceta, no gestos de swipe; la experiencia tactil se basa en botones nativos.
+- Defensa en entrevista: el dispositivo emite comandos, nunca cambia posiciones directamente; el dominio y sus pruebas permanecen independientes del DOM y del tamaño del canvas.

@@ -14,6 +14,7 @@ import { createBoard, type LevelDefinition } from "../domain/board.js";
 import { createDeterministicRandom } from "../domain/enemy.js";
 import type { GameState } from "../domain/entities.js";
 import type { Direction, GameStatus } from "../domain/value-objects.js";
+import { bindBrowserControls, type BrowserControlsCommands } from "../infrastructure/browser-controls.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
@@ -83,7 +84,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   canvas.width = board.width * TILE_SIZE;
   canvas.height = board.height * TILE_SIZE;
   canvas.style.width = `${canvas.width}px`;
-  canvas.style.height = `${canvas.height}px`;
+  canvas.style.height = "auto";
   canvas.style.maxWidth = "100%";
   canvas.style.borderRadius = "18px";
   canvas.style.boxShadow = "0 32px 70px rgba(0, 0, 0, 0.45)";
@@ -97,6 +98,30 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   const hintValue = getElement(frame, "hint-value");
   const rankingValue = getElement(frame, "ranking-value");
   const debugValue = getElement(frame, "debug-value");
+  const pauseButton = getElement(frame, "pause-button") as HTMLButtonElement;
+  const startButton = getElement(frame, "start-button") as HTMLButtonElement;
+  const debugButton = getElement(frame, "debug-button");
+
+  const commands: BrowserControlsCommands = {
+    requestDirection: (direction) => { state = requestDirectionForSession(state, direction); },
+    togglePause: () => { state = state.status === "paused" ? resumeGameSession(state) : pauseGameSession(state); },
+    restart: () => {
+      state = restartGameSession(state);
+      previousState = state;
+      scoreWasPersisted = false;
+      scorePopups = [];
+      presentationTimeMs = 0;
+      accumulator = 0;
+    },
+    toggleDebug: () => { debugEnabled = !debugEnabled; },
+    start: () => {
+      if (state.status === "gameOver" || state.status === "victory") {
+        commands.restart();
+      }
+      state = startGameSession(state);
+    }
+  };
+  const unbindControls = bindBrowserControls(frame, commands);
 
   const nextRandom = createDeterministicRandom([0.17, 0.82, 0.39, 0.63, 0.28, 0.91]);
 
@@ -107,47 +132,38 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
     if (direction !== null) {
       event.preventDefault();
-      state = requestDirectionForSession(state, direction);
+      commands.requestDirection(direction);
+      return;
+    }
+
+    // Native buttons handle Enter/Space themselves, avoiding a second keyboard command.
+    if ((event.key === " " || event.key === "Enter") &&
+      event.target instanceof Element && event.target.closest("button") !== null) {
       return;
     }
 
     if (event.key === " ") {
       event.preventDefault();
-      state = state.status === "paused" ? resumeGameSession(state) : pauseGameSession(state);
+      commands.togglePause();
       return;
     }
 
     if (event.key.toLowerCase() === "r") {
       event.preventDefault();
-      state = restartGameSession(state);
-      previousState = state;
-      scoreWasPersisted = false;
-      scorePopups = [];
-      presentationTimeMs = 0;
+      commands.restart();
       return;
     }
 
-    if (event.key === "Tab") {
+    if (event.key.toLowerCase() === "g") {
       event.preventDefault();
-      debugEnabled = !debugEnabled;
+      commands.toggleDebug();
       return;
     }
 
     if (event.key === "Enter") {
       event.preventDefault();
 
-      if (state.status === "idle") {
-        state = startGameSession(state);
-        return;
-      }
-
-      if (state.status === "gameOver" || state.status === "victory") {
-        state = startGameSession(restartGameSession(state));
-        previousState = state;
-        scoreWasPersisted = false;
-        scorePopups = [];
-        presentationTimeMs = 0;
-      }
+      commands.start();
     }
   };
 
@@ -159,12 +175,16 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     scoreValue.textContent = String(snapshot.score);
     highScore = Math.max(highScore, snapshot.score);
     highScoreValue.textContent = String(highScore);
+    pauseButton.textContent = snapshot.status === "paused" ? "Resume" : "Pause";
+    pauseButton.disabled = snapshot.status !== "running" && snapshot.status !== "paused";
+    startButton.disabled = snapshot.status !== "idle" && snapshot.status !== "gameOver" && snapshot.status !== "victory";
+    debugButton.setAttribute("aria-pressed", String(debugEnabled));
     livesValue.innerHTML = renderLives(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
-      ? "Press an arrow, WASD, or Enter to start"
+      ? "Use the direction pad, arrows, WASD, or Start to play"
       : snapshot.status === "ready"
         ? `READY! Your first direction is buffered | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`
-      : `Arrows/WASD move | Space pause | R restart | Tab debug | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`;
+      : `Direction pad or arrows/WASD move | Space pause | R restart | G debug | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`;
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -229,6 +249,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
 
   window.addEventListener("beforeunload", () => {
     document.removeEventListener("keydown", onKeyDown);
+    unbindControls();
     window.cancelAnimationFrame(animationFrameId);
   }, { once: true });
 
@@ -283,9 +304,11 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   shell.style.display = "grid";
   shell.style.placeItems = "center";
   shell.style.padding = "40px 20px";
+  shell.className = "pacman-demo-shell";
 
   const panel = document.createElement("section");
   panel.style.width = "min(1180px, 100%)";
+  panel.className = "pacman-demo-panel";
   panel.style.display = "grid";
   panel.style.gap = "18px";
   panel.style.padding = "26px";
@@ -299,10 +322,10 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 35 Arcade Maze</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 40 Touch Controls</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
+      <div class="pacman-demo-hud" style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
         <div style="padding:12px 14px;border-radius:16px;background:rgba(18,35,62,0.7);border:1px solid rgba(136,196,255,0.18);">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#96afcc;">Status</div>
           <div data-role="status-value" style="margin-top:6px;font-size:18px;font-weight:700;">Idle</div>
@@ -365,7 +388,23 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   debugValue.style.color = COLORS.muted;
   debugCard.append(debugValue);
 
-  leftColumn.append(canvas, hint);
+  const controls = document.createElement("div");
+  controls.className = "pacman-demo-controls";
+  controls.innerHTML = `
+    <div class="pacman-demo-dpad" role="group" aria-label="Movement controls">
+      <button type="button" data-command="up" aria-label="Move up" style="grid-area:1/2">&#9650;</button>
+      <button type="button" data-command="left" aria-label="Move left" style="grid-area:2/1">&#9664;</button>
+      <button type="button" data-command="down" aria-label="Move down" style="grid-area:2/2">&#9660;</button>
+      <button type="button" data-command="right" aria-label="Move right" style="grid-area:2/3">&#9654;</button>
+    </div>
+    <div class="pacman-demo-actions" role="group" aria-label="Game controls">
+      <button type="button" data-command="start" data-role="start-button">Start</button>
+      <button type="button" data-command="pause" data-role="pause-button">Pause</button>
+      <button type="button" data-command="restart">Restart</button>
+      <button type="button" data-command="debug" data-role="debug-button" aria-pressed="false">Debug</button>
+    </div>
+  `;
+  leftColumn.append(canvas, controls, hint);
   rightColumn.append(rankingCard, debugCard);
   content.append(leftColumn, rightColumn);
   panel.append(title, content);
@@ -383,11 +422,30 @@ const ensureResponsiveDemoStyles = (): void => {
   const styles = document.createElement("style");
   styles.id = "pacman-demo-responsive-styles";
   styles.textContent = `
+    .pacman-demo-controls { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .pacman-demo-dpad { display:grid; grid-template-columns:repeat(3, 52px); grid-template-rows:repeat(2, 48px); gap:6px; }
+    .pacman-demo-actions { display:grid; grid-template-columns:repeat(2, minmax(72px, 1fr)); gap:8px; }
+    .pacman-demo-controls button {
+      min-height:48px; border:1px solid rgba(136,196,255,0.4); border-radius:12px;
+      background:#12233e; color:#f4f8ff; font:700 15px "Trebuchet MS",sans-serif;
+      cursor:pointer; touch-action:manipulation; user-select:none;
+    }
+    .pacman-demo-dpad button { font-size:22px; color:#ffd400; }
+    .pacman-demo-controls button:active { background:#284d7d; }
+    .pacman-demo-controls button:focus-visible { outline:3px solid #ffd400; outline-offset:3px; }
+    .pacman-demo-controls button:disabled { opacity:0.4; cursor:default; }
+    .pacman-demo-controls button[aria-pressed="true"] { border-color:#ffd400; }
     @media (max-width: 820px) {
       .pacman-demo-content { grid-template-columns: minmax(0, 1fr) !important; }
       .pacman-demo-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 560px) {
+      .pacman-demo-shell { padding:16px 8px !important; }
+      .pacman-demo-panel { padding:12px !important; }
+      .pacman-demo-hud { grid-template-columns:repeat(2, minmax(0, 1fr)) !important; min-width:0 !important; width:100%; }
+      .pacman-demo-controls { gap:8px; }
+      .pacman-demo-dpad { grid-template-columns:repeat(3, 44px); }
+      .pacman-demo-actions { grid-template-columns:repeat(2, minmax(64px, 1fr)); gap:6px; }
       .pacman-demo-sidebar { grid-template-columns: minmax(0, 1fr); }
     }
   `;
@@ -443,7 +501,7 @@ const createDebugText = (
   debugEnabled: boolean
 ): string => {
   if (!debugEnabled) {
-    return "Press Tab to toggle simulation diagnostics.";
+    return "Press G or use Debug to toggle simulation diagnostics.";
   }
 
   return [
