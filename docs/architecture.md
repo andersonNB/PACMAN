@@ -712,3 +712,15 @@ Regla:
 - Pruebas: traduccion de direcciones y comandos de ciclo de vida, suite completa y verificacion en navegador de inicio con cruceta, pausa, reanudacion con Espacio, reinicio y vista de 360px sin desbordamiento horizontal.
 - Coste y riesgos: se añade un adaptador DOM y sus listeners deben retirarse al cerrar. Esta fase incorpora cruceta, no gestos de swipe; la experiencia tactil se basa en botones nativos.
 - Defensa en entrevista: el dispositivo emite comandos, nunca cambia posiciones directamente; el dominio y sus pruebas permanecen independientes del DOM y del tamaño del canvas.
+
+## 52. Fase 41 implementada
+
+- Objetivo e historia: como jugador movil, quiero deslizar sobre el tablero para cambiar de direccion sin buscar los botones.
+- Diseno: `infrastructure/swipe-input.ts` convierte Pointer Events de dedo o lapiz en el mismo callback `requestDirection` usado por la cruceta y el teclado. No mueve entidades directamente.
+- Alternativas: eventos tactiles separados, gestos continuos o Pointer Events. Se eligen Pointer Events por su soporte de captura, cancelacion y lapices; se emite un comando al terminar el gesto para evitar repeticion accidental.
+- Reglas del adaptador: minimo 24 pixeles CSS, eje dominante al menos 1.2 veces el otro, un solo puntero primario y coordenadas finitas. El umbral no depende del tamaño interno del canvas.
+- Captura: el tablero retiene el puntero aunque salga de su area. `pointercancel` y `lostpointercapture` descartan el gesto; otro puntero no puede finalizarlo. Mouse conserva su comportamiento existente.
+- Presentacion: `touch-action: none` se aplica solo al canvas. Al retirar el adaptador se libera la captura, se retiran listeners y se restaura el valor anterior.
+- Criterios y pruebas: cuatro direcciones, toques/diagonales rechazados, captura y comando unico, interrupciones, punteros secundarios, mouse y limpieza. Las instrucciones del demo explican el gesto.
+- Coste y limitacion: se decide al levantar el dedo, por lo que existe esa latencia de entrada; gestos continuos requeririan otra politica de filtrado. La cruceta sigue disponible como alternativa.
+- Pregunta de entrevista: donde deben vivir los umbrales de gestos? Defensa: son detalles de entrada en infraestructura; el dominio solo recibe direcciones y aplica reglas de giro y colision existentes.

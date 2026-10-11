@@ -81,3 +81,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Cruceta y botones de Start, Pause/Resume, Restart y Debug bajo el tablero, disponibles con raton o pantalla tactil.
 - El canvas conserva su proporcion en movil y el HUD se adapta a dos columnas en pantallas pequenas.
 - `Tab` permite navegar por los controles; `Enter` o `Espacio` activan el boton enfocado. El atajo de debug pasa a `G`.
+
+## Fase 41: gestos de deslizamiento
+
+- Desliza un dedo o lapiz sobre el tablero para solicitar una direccion, incluso durante READY para anticipar el primer movimiento.
+- Se ignoran toques, movimientos menores a 24 pixeles y diagonales ambiguas. La direccion se solicita al levantar el dedo.
+- El desplazamiento de la pagina se bloquea solo dentro del tablero; fuera de el puedes seguir haciendo scroll.

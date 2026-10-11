@@ -15,6 +15,7 @@ import { createDeterministicRandom } from "../domain/enemy.js";
 import type { GameState } from "../domain/entities.js";
 import type { Direction, GameStatus } from "../domain/value-objects.js";
 import { bindBrowserControls, type BrowserControlsCommands } from "../infrastructure/browser-controls.js";
+import { bindSwipeInput } from "../infrastructure/swipe-input.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
@@ -122,6 +123,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     }
   };
   const unbindControls = bindBrowserControls(frame, commands);
+  const unbindSwipe = bindSwipeInput(canvas, commands.requestDirection);
 
   const nextRandom = createDeterministicRandom([0.17, 0.82, 0.39, 0.63, 0.28, 0.91]);
 
@@ -181,10 +183,10 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     debugButton.setAttribute("aria-pressed", String(debugEnabled));
     livesValue.innerHTML = renderLives(snapshot.lives);
     hintValue.textContent = snapshot.status === "idle"
-      ? "Use the direction pad, arrows, WASD, or Start to play"
+      ? "Swipe the board, use the direction pad, arrows/WASD, or Start to play"
       : snapshot.status === "ready"
         ? `READY! Your first direction is buffered | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`
-      : `Direction pad or arrows/WASD move | Space pause | R restart | G debug | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`;
+      : `Swipe, direction pad or arrows/WASD move | Space pause | R restart | G debug | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`;
     debugValue.innerHTML = createDebugText(snapshot, debugEnabled);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -250,6 +252,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   window.addEventListener("beforeunload", () => {
     document.removeEventListener("keydown", onKeyDown);
     unbindControls();
+    unbindSwipe();
     window.cancelAnimationFrame(animationFrameId);
   }, { once: true });
 
@@ -322,7 +325,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 40 Touch Controls</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 41 Swipe Controls</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div class="pacman-demo-hud" style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
