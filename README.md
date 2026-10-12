@@ -87,3 +87,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Desliza un dedo o lapiz sobre el tablero para solicitar una direccion, incluso durante READY para anticipar el primer movimiento.
 - Se ignoran toques, movimientos menores a 24 pixeles y diagonales ambiguas. La direccion se solicita al levantar el dedo.
 - El desplazamiento de la pagina se bloquea solo dentro del tablero; fuera de el puedes seguir haciendo scroll.
+
+## Fase 42: pausa segura en segundo plano
+
+- Cambiar de pestana o salir de la ventana pausa Running y READY; al volver pulsa Resume para continuar.
+- La cuenta regresiva READY conserva su tiempo y la direccion solicitada durante la pausa.
+- El loop descarta el tiempo en segundo plano, evitando saltos y movimientos acumulados al regresar.

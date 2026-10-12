@@ -50,6 +50,31 @@ const createSession = () =>
   );
 
 describe("game session states", () => {
+  it("pauses ready without losing its timer or buffered direction and resumes ready", () => {
+    const seed = createSession();
+    let state = startGameSession(restartGameSession({
+      ...seed,
+      sessionConfig: { ...seed.sessionConfig, readyDelayMs: 500 }
+    }));
+    state = requestDirectionForSession(state, "right");
+    state = advanceGameSession(state, 100);
+    const paused = pauseGameSession(state);
+
+    expect(paused.status).toBe("paused");
+    expect(paused.resumeStatus).toBe("ready");
+    expect(advanceGameSession(paused, 10000)).toBe(paused);
+    expect(pauseGameSession(paused)).toBe(paused);
+
+    state = resumeGameSession(paused);
+    expect(state.status).toBe("ready");
+    expect(state.resumeStatus).toBeNull();
+    expect(state.phaseTimerMs).toBe(400);
+    expect(state.player.requestedDirection).toBe("right");
+    state = advanceGameSession(state, 400);
+    expect(state.status).toBe("running");
+    expect(restartGameSession(paused).resumeStatus).toBeNull();
+  });
+
   it("holds the round in ready until its configured delay expires", () => {
     const idleState = createGameSession(createBoard(LEVEL), {
       playerSpeedUnitsPerSecond: 2,

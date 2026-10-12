@@ -724,3 +724,14 @@ Regla:
 - Criterios y pruebas: cuatro direcciones, toques/diagonales rechazados, captura y comando unico, interrupciones, punteros secundarios, mouse y limpieza. Las instrucciones del demo explican el gesto.
 - Coste y limitacion: se decide al levantar el dedo, por lo que existe esa latencia de entrada; gestos continuos requeririan otra politica de filtrado. La cruceta sigue disponible como alternativa.
 - Pregunta de entrevista: donde deben vivir los umbrales de gestos? Defensa: son detalles de entrada en infraestructura; el dominio solo recibe direcciones y aplica reglas de giro y colision existentes.
+
+## 53. Fase 42 implementada
+
+- Objetivo e historia: como jugador, quiero conservar mi partida cuando cambio de pestana o ventana y decidir cuando continuar.
+- Aplicacion: `pauseGameSession` acepta Running y Ready; `resumeStatus` recuerda cual restaurar. Se conservan temporizadores y direccion solicitada, y restart elimina el estado de reanudacion.
+- Infraestructura: `page-activity.ts` traduce visibilitychange, blur y focus a actividad de pagina y ofrece limpieza de listeners. No conoce reglas de vidas, movimiento ni puntuacion.
+- Presentacion: al perder actividad solicita pausa, iguala snapshots y reinicia acumulador/referencia temporal. Mientras esta inactiva no avanza simulacion ni reloj visual. Los estados transitorios PlayerDying y LevelCompleted tambien quedan congelados por el loop hasta volver.
+- Decision: reanudacion explicita en Running/Ready frente a automatica; evita que el jugador pierda una vida antes de recuperar los controles. El boton Resume y el texto de ayuda indican como continuar.
+- Criterios y pruebas: actividad inicial, cambio de ventana, pagina oculta, retorno, limpieza de listeners y pausa de Ready con temporizador/direccion intactos. La suite existente protege pausa y reanudacion de Running.
+- Coste y riesgo: se añade un campo al estado de sesion para recordar la fase pausada. Algunas herramientas del navegador tambien provocan blur; se trata como una interrupcion real para conservar la partida.
+- Pregunta de entrevista: por que no recuperar todos los ticks perdidos? Defensa: el tiempo en segundo plano no representa juego activo; descartar el acumulador evita una rafaga de simulacion, manteniendo el timestep fijo durante el juego visible.

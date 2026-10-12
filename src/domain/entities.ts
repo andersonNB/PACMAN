@@ -102,6 +102,7 @@ export type GameState = Readonly<{
   lives: LivesValue;
   extraLifeAwarded: boolean;
   status: GameStatus;
+  resumeStatus: "running" | "ready" | null;
   tick: number;
   phaseTimerMs: number | null;
   frightenedTimerMs: number | null;

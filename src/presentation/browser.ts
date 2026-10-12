@@ -16,6 +16,7 @@ import type { GameState } from "../domain/entities.js";
 import type { Direction, GameStatus } from "../domain/value-objects.js";
 import { bindBrowserControls, type BrowserControlsCommands } from "../infrastructure/browser-controls.js";
 import { bindSwipeInput } from "../infrastructure/swipe-input.js";
+import { bindPageActivity } from "../infrastructure/page-activity.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
@@ -74,6 +75,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   let debugEnabled = false;
   let scorePopups: readonly ScorePopup[] = [];
   let highScore = 0;
+  let pageActive = true;
 
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -178,11 +180,13 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     highScore = Math.max(highScore, snapshot.score);
     highScoreValue.textContent = String(highScore);
     pauseButton.textContent = snapshot.status === "paused" ? "Resume" : "Pause";
-    pauseButton.disabled = snapshot.status !== "running" && snapshot.status !== "paused";
+    pauseButton.disabled = snapshot.status !== "running" && snapshot.status !== "ready" && snapshot.status !== "paused";
     startButton.disabled = snapshot.status !== "idle" && snapshot.status !== "gameOver" && snapshot.status !== "victory";
     debugButton.setAttribute("aria-pressed", String(debugEnabled));
     livesValue.innerHTML = renderLives(snapshot.lives);
-    hintValue.textContent = snapshot.status === "idle"
+    hintValue.textContent = snapshot.status === "paused"
+      ? "Paused safely. Press Resume to continue. Switching windows pauses the game."
+      : snapshot.status === "idle"
       ? "Swipe the board, use the direction pad, arrows/WASD, or Start to play"
       : snapshot.status === "ready"
         ? `READY! Your first direction is buffered | Pellets ${snapshot.pelletsCollected}/${snapshot.pelletsTotal}`
@@ -215,6 +219,12 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   };
 
   const step = (time: number): void => {
+    if (!pageActive) {
+      lastFrameTime = time;
+      accumulator = 0;
+      animationFrameId = window.requestAnimationFrame(step);
+      return;
+    }
     const frameDelta = Math.min(time - lastFrameTime, 250);
     lastFrameTime = time;
     if (state.status !== "paused") {
@@ -246,6 +256,16 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   };
 
   document.addEventListener("keydown", onKeyDown);
+  const unbindPageActivity = bindPageActivity(document, window, (active) => {
+    pageActive = active;
+    if (!active) {
+      state = pauseGameSession(state);
+    }
+    previousState = state;
+    accumulator = 0;
+    lastFrameTime = performance.now();
+    render(0);
+  });
   render(0);
   animationFrameId = window.requestAnimationFrame(step);
 
@@ -253,6 +273,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     document.removeEventListener("keydown", onKeyDown);
     unbindControls();
     unbindSwipe();
+    unbindPageActivity();
     window.cancelAnimationFrame(animationFrameId);
   }, { once: true });
 
@@ -325,7 +346,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 41 Swipe Controls</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 42 Safe Pause</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div class="pacman-demo-hud" style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">

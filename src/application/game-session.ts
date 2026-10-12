@@ -60,10 +60,11 @@ export const startGameSession = (state: GameState): GameState =>
   state.status === "idle" ? enterReadyState(state) : state;
 
 export const pauseGameSession = (state: GameState): GameState =>
-  state.status === "running"
+  state.status === "running" || state.status === "ready"
     ? {
         ...state,
-        status: "paused"
+        status: "paused",
+        resumeStatus: state.status
       }
     : state;
 
@@ -71,7 +72,8 @@ export const resumeGameSession = (state: GameState): GameState =>
   state.status === "paused"
     ? {
         ...state,
-        status: "running"
+        status: state.resumeStatus ?? "running",
+        resumeStatus: null
       }
     : state;
 
@@ -419,6 +421,7 @@ const createInitialGameState = (board: Board, sessionConfig: SessionConfigState)
   lives: { value: sessionConfig.initialLives },
   extraLifeAwarded: false,
   status: "idle",
+  resumeStatus: null,
   tick: 0,
   phaseTimerMs: null,
   frightenedTimerMs: null,
