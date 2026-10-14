@@ -67,6 +67,9 @@ export const createBoard = (level: LevelDefinition): Board => {
       const position = createTilePosition(rowIndex, columnIndex);
 
       if (parsedSymbol === "P") {
+        if (playerSpawn !== null) {
+          throw new Error("Level must define exactly one player spawn.");
+        }
         playerSpawn = position;
       }
 

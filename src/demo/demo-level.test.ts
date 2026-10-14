@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { createBoard, createBoardQuery } from "../domain/board.js";
 import { DEMO_LEVEL } from "./demo-level.js";
+import { validatePlayableBoard } from "../domain/level-validation.js";
 import { advanceEnemy, createEnemies, markEnemyAsReturningHome, releaseEnemyFromHome } from "../domain/enemy.js";
 import { tileToWorldPosition, worldToTilePosition } from "../domain/player.js";
 
 describe("arcade browser demo level", () => {
+  it("has reachable collectibles and connected ghost spawns", () => {
+    expect(validatePlayableBoard(createBoard(DEMO_LEVEL))).toEqual({ playable: true, issues: [] });
+  });
   it("defines a full maze with four ghosts and a traversable side tunnel", () => {
     const board = createBoard(DEMO_LEVEL);
     const query = createBoardQuery(board);

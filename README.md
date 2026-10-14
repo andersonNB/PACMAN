@@ -93,3 +93,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Cambiar de pestana o salir de la ventana pausa Running y READY; al volver pulsa Resume para continuar.
 - La cuenta regresiva READY conserva su tiempo y la direccion solicitada durante la pausa.
 - El loop descarta el tiempo en segundo plano, evitando saltos y movimientos acumulados al regresar.
+
+## Fase 43: validacion de mapas jugables
+
+- El demo valida el nivel antes de iniciar: debe haber pellets, todos los consumibles deben ser accesibles y los spawns de fantasmas deben estar conectados al laberinto.
+- Un mapa invalido muestra un mensaje con el tipo de problema y coordenadas de celda (desde cero), sin arrancar el loop.
+- La carga rechaza multiples spawns del jugador. El mapa arcade actual supera la validacion.

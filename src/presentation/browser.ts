@@ -17,6 +17,7 @@ import type { Direction, GameStatus } from "../domain/value-objects.js";
 import { bindBrowserControls, type BrowserControlsCommands } from "../infrastructure/browser-controls.js";
 import { bindSwipeInput } from "../infrastructure/swipe-input.js";
 import { bindPageActivity } from "../infrastructure/page-activity.js";
+import { validatePlayableBoard } from "../domain/level-validation.js";
 
 const FIXED_TICK_MS = 100;
 const TILE_SIZE = 34;
@@ -64,7 +65,23 @@ export type BrowserDemoConfig = Readonly<{
 }>;
 
 export const startBrowserDemo = (config: BrowserDemoConfig): void => {
-  const board = createBoard(config.level);
+  let board: ReturnType<typeof createBoard>;
+  try {
+    board = createBoard(config.level);
+    const report = validatePlayableBoard(board);
+    if (!report.playable) {
+      throw new Error(report.issues.map((issue) =>
+        `${issue.code}${issue.tile === null ? "" : ` (row ${issue.tile.row}, column ${issue.tile.column})`}`
+      ).join("; "));
+    }
+  } catch (error) {
+    const message = document.createElement("p");
+    message.setAttribute("role", "alert");
+    message.style.padding = "24px";
+    message.textContent = `Level cannot be played: ${error instanceof Error ? error.message : "Invalid map"}`;
+    config.root.replaceChildren(message);
+    return;
+  }
   let state = createInitialState();
   let previousState = state;
   let accumulator = 0;
@@ -346,7 +363,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 42 Safe Pause</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 43 Validated Maze</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div class="pacman-demo-hud" style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">

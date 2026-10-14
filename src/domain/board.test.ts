@@ -16,6 +16,10 @@ const TEST_LEVEL: LevelDefinition = {
 };
 
 describe("createBoard", () => {
+  it("rejects multiple player spawns instead of silently keeping the last one", () => {
+    expect(() => createBoard({ id: "two-players", rows: ["#####", "#PPE#", "#####"] }))
+      .toThrow("Level must define exactly one player spawn.");
+  });
   it("builds a board with dimensions and spawns", () => {
     const board = createBoard(TEST_LEVEL);
 

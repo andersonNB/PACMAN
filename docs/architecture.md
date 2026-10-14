@@ -735,3 +735,16 @@ Regla:
 - Criterios y pruebas: actividad inicial, cambio de ventana, pagina oculta, retorno, limpieza de listeners y pausa de Ready con temporizador/direccion intactos. La suite existente protege pausa y reanudacion de Running.
 - Coste y riesgo: se añade un campo al estado de sesion para recordar la fase pausada. Algunas herramientas del navegador tambien provocan blur; se trata como una interrupcion real para conservar la partida.
 - Pregunta de entrevista: por que no recuperar todos los ticks perdidos? Defensa: el tiempo en segundo plano no representa juego activo; descartar el acumulador evita una rafaga de simulacion, manteniendo el timestep fijo durante el juego visible.
+
+## 54. Fase 43 implementada
+
+- Objetivo e historia: como autor de niveles, quiero detectar mapas imposibles de completar antes de jugar y conocer las celdas afectadas.
+- Dominio: `level-validation.ts` expone `validatePlayableBoard`, un informe puro con `playable` y problemas tipados: `noPellets`, `unreachableCollectible` y `disconnectedEnemySpawn`.
+- Diseno: dos recorridos BFS desde el spawn del jugador usan las consultas del tablero. Uno respeta caminos del jugador; el otro permite casa y zonas restringidas como `returningHome`. Incluyen las conexiones laterales ya definidas por BoardQuery.
+- Reglas: al menos un dot o power pellet; todos los consumibles, incluido fruit, accesibles al jugador; todos los spawns de enemigos conectados para retorno. El parser tambien rechaza mas de un P en vez de conservar silenciosamente el ultimo.
+- Decision: mantener el analisis de jugabilidad separado del parser estructural. Los tests de rutas pueden construir deliberadamente mapas desconectados; el adaptador del demo exige jugabilidad antes de crear sesion y listeners.
+- Presentacion: errores estructurales o de conectividad producen un mensaje `role=alert` con codigos y coordenadas base cero mediante `textContent`. No se inicia el loop ni se interpreta texto del mapa como HTML.
+- Criterios y pruebas: mapa valido con casa, consumibles aislados, fruit aislado, ausencia de pellets, spawn desconectado, conexion por tunel y multiples jugadores. Un test aplica el informe al mapa real del demo.
+- Coste: O(V + E) y memoria O(V) durante la carga, sin trabajo adicional por frame. Alternativa descartada: descubrir consumibles inaccesibles al final de una partida.
+- Limitaciones: conectividad no demuestra equilibrio, dificultad o correccion de todas las estrategias; tampoco valida aun que cada salida de casa seleccionada por el algoritmo sea alcanzable. Este informe usa la topologia existente, no redefine las reglas de tuneles.
+- Pregunta de entrevista: por que no validar todo en createBoard? Defensa: la estructura de un mapa y su jugabilidad son contratos distintos; conservarlos separados permite herramientas de edicion, diagnosticos acumulados y fixtures de prueba negativos.
