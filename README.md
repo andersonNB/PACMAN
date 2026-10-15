@@ -99,3 +99,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - El demo valida el nivel antes de iniciar: debe haber pellets, todos los consumibles deben ser accesibles y los spawns de fantasmas deben estar conectados al laberinto.
 - Un mapa invalido muestra un mensaje con el tipo de problema y coordenadas de celda (desde cero), sin arrancar el loop.
 - La carga rechaza multiples spawns del jugador. El mapa arcade actual supera la validacion.
+
+## Fase 44: ranking resistente a errores de almacenamiento
+
+- El juego puede iniciar aunque el navegador bloquee `localStorage`.
+- Si leer o guardar falla, conserva el ranking en memoria durante la sesion y muestra un aviso junto a High Scores.
+- Cuando el almacenamiento funciona, las puntuaciones siguen disponibles al recargar como antes.

@@ -61,6 +61,7 @@ export type BrowserDemoConfig = Readonly<{
   level: LevelDefinition;
   sessionConfig: SessionConfig;
   scoreRepository?: ScoreRepository;
+  scorePersistenceMode?: () => "persistent" | "memory";
   playerName?: string;
 }>;
 
@@ -117,6 +118,7 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
   const livesValue = getElement(frame, "lives-value");
   const hintValue = getElement(frame, "hint-value");
   const rankingValue = getElement(frame, "ranking-value");
+  const rankingNotice = getElement(frame, "ranking-notice");
   const debugValue = getElement(frame, "debug-value");
   const pauseButton = getElement(frame, "pause-button") as HTMLButtonElement;
   const startButton = getElement(frame, "start-button") as HTMLButtonElement;
@@ -200,6 +202,12 @@ export const startBrowserDemo = (config: BrowserDemoConfig): void => {
     pauseButton.disabled = snapshot.status !== "running" && snapshot.status !== "ready" && snapshot.status !== "paused";
     startButton.disabled = snapshot.status !== "idle" && snapshot.status !== "gameOver" && snapshot.status !== "victory";
     debugButton.setAttribute("aria-pressed", String(debugEnabled));
+    const persistenceNotice = config.scorePersistenceMode?.() === "memory"
+      ? "Scores are kept for this session only. Saving on this device is unavailable."
+      : "";
+    if (rankingNotice.textContent !== persistenceNotice) {
+      rankingNotice.textContent = persistenceNotice;
+    }
     livesValue.innerHTML = renderLives(snapshot.lives);
     hintValue.textContent = snapshot.status === "paused"
       ? "Paused safely. Press Resume to continue. Switching windows pauses the game."
@@ -363,7 +371,7 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   title.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;">
       <div>
-        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 43 Validated Maze</div>
+        <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#96afcc;">Phase 44 Resilient Scores</div>
         <h1 style="margin:8px 0 0;font-size:clamp(28px, 5vw, 52px);line-height:0.95;">PACMAN<br/>Architecture Demo</h1>
       </div>
       <div class="pacman-demo-hud" style="display:grid;grid-template-columns:repeat(4, minmax(82px, 1fr));gap:12px;min-width:min(100%, 460px);">
@@ -419,6 +427,13 @@ const createFrameElement = (canvas: HTMLCanvasElement, root: HTMLElement): HTMLE
   rankingValue.style.color = COLORS.text;
   rankingValue.innerHTML = "<div>Loading...</div>";
   rankingCard.append(rankingValue);
+  const rankingNotice = document.createElement("p");
+  rankingNotice.setAttribute("data-role", "ranking-notice");
+  rankingNotice.setAttribute("role", "status");
+  rankingNotice.style.color = COLORS.pellet;
+  rankingNotice.style.fontSize = "13px";
+  rankingNotice.style.margin = "0";
+  rankingCard.append(rankingNotice);
 
   const debugCard = createSideCard("Debug Overlay", "Snapshot-derived diagnostics outside the game domain.");
   const debugValue = document.createElement("div");

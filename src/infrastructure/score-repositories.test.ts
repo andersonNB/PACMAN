@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ScoreEntry } from "../application/ports.js";
 import {
   createBrowserStorageScoreRepository,
+  createSafeBrowserScoreRepository,
   createInMemoryScoreRepository
 } from "./score-repositories.js";
 
@@ -18,6 +19,52 @@ describe("createInMemoryScoreRepository", () => {
       createEntry("Inky", 1500, "2026-08-03T10:40:00.000Z"),
       createEntry("Blinky", 1200, "2026-08-03T10:30:00.000Z")
     ]);
+  });
+});
+
+describe("safe browser scores", () => {
+  const entry: ScoreEntry = { playerName: "Player", score: 300, achievedAtIso: "2026-08-03T10:00:00.000Z" };
+
+  it("persists normally and restores entries in another repository instance", async () => {
+    const storage = createStorageDouble();
+    const repository = createSafeBrowserScoreRepository(() => storage);
+    await repository.save(entry);
+    const restored = createSafeBrowserScoreRepository(() => storage);
+    await expect(restored.listTop(5)).resolves.toEqual([entry]);
+    expect(repository.getPersistenceMode()).toBe("persistent");
+  });
+
+  it("starts and retains scores even when accessing localStorage throws", async () => {
+    const repository = createSafeBrowserScoreRepository(() => { throw new Error("SecurityError"); });
+    await expect(repository.listTop(5)).resolves.toEqual([]);
+    await repository.save(entry);
+    await expect(repository.listTop(5)).resolves.toEqual([entry]);
+    expect(repository.getPersistenceMode()).toBe("memory");
+  });
+
+  it("preserves loaded and new scores when storage fills up", async () => {
+    const previous = createEntry("Previous", 200, "2026-08-03T09:00:00.000Z");
+    const repository = createSafeBrowserScoreRepository(() => ({
+      getItem: () => JSON.stringify([previous]),
+      setItem: () => { throw new Error("QuotaExceededError"); }
+    }));
+    await repository.save(entry);
+    await expect(repository.listTop(5)).resolves.toEqual([entry, previous]);
+    await repository.save({ ...entry, score: 500 });
+    await expect(repository.listTop(2)).resolves.toEqual([{ ...entry, score: 500 }, entry]);
+    expect(repository.getPersistenceMode()).toBe("memory");
+  });
+
+  it("keeps its last successful read when reading storage later fails", async () => {
+    let blocked = false;
+    const repository = createSafeBrowserScoreRepository(() => ({
+      getItem: () => { if (blocked) throw new Error("Blocked"); return JSON.stringify([entry]); },
+      setItem: () => {}
+    }));
+    await repository.listTop(5);
+    blocked = true;
+    await expect(repository.listTop(5)).resolves.toEqual([entry]);
+    expect(repository.getPersistenceMode()).toBe("memory");
   });
 });
 

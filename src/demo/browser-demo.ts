@@ -1,5 +1,5 @@
 import { startBrowserDemo } from "../presentation/browser.js";
-import { createBrowserStorageScoreRepository } from "../infrastructure/score-repositories.js";
+import { createSafeBrowserScoreRepository } from "../infrastructure/score-repositories.js";
 import { DEMO_LEVEL } from "./demo-level.js";
 
 const root = document.getElementById("app");
@@ -8,11 +8,14 @@ if (root === null) {
   throw new Error("Browser demo root element was not found.");
 }
 
+const scoreRepository = createSafeBrowserScoreRepository(() => window.localStorage);
+
 startBrowserDemo({
   root,
   level: DEMO_LEVEL,
   playerName: "andersonNB",
-  scoreRepository: createBrowserStorageScoreRepository(window.localStorage),
+  scoreRepository,
+  scorePersistenceMode: scoreRepository.getPersistenceMode,
   sessionConfig: {
     playerSpeedUnitsPerSecond: 3.2,
     enemySpeedUnitsPerSecond: 2.4,

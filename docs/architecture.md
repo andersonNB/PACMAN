@@ -748,3 +748,15 @@ Regla:
 - Coste: O(V + E) y memoria O(V) durante la carga, sin trabajo adicional por frame. Alternativa descartada: descubrir consumibles inaccesibles al final de una partida.
 - Limitaciones: conectividad no demuestra equilibrio, dificultad o correccion de todas las estrategias; tampoco valida aun que cada salida de casa seleccionada por el algoritmo sea alcanzable. Este informe usa la topologia existente, no redefine las reglas de tuneles.
 - Pregunta de entrevista: por que no validar todo en createBoard? Defensa: la estructura de un mapa y su jugabilidad son contratos distintos; conservarlos separados permite herramientas de edicion, diagnosticos acumulados y fixtures de prueba negativos.
+
+## 55. Fase 44 implementada
+
+- Objetivo e historia: como jugador, quiero iniciar y terminar partidas aunque el navegador impida guardar datos, y saber si el ranking se perdera al cerrar.
+- Problema: acceder directamente a `window.localStorage` durante el bootstrap puede lanzar SecurityError. `getItem` y `setItem` tambien pueden fallar por permisos o cuota.
+- Diseno: `createSafeBrowserScoreRepository` recibe una funcion que obtiene el storage de forma diferida. Mantiene el contrato ScoreRepository y un cache en memoria de las entradas leidas y guardadas.
+- Decision: ante el primer error de acceso, lectura o escritura cambia a memoria para el resto de la sesion. Evita errores repetidos y preserva el ultimo ranking conocido, incluida la puntuacion cuya escritura fallo.
+- Alternativas: omitir silenciosamente el ranking o reintentar cada frame. El respaldo mantiene la funcion disponible; recuperar almacenamiento requiere recargar la pagina, y no se promete persistencia de los datos temporales.
+- Presentacion: un callback opcional informa el modo de persistencia. High Scores muestra un estado accesible cuando las puntuaciones solo duran esta sesion. El dominio sigue sin conocer localStorage ni errores del navegador.
+- Criterios y pruebas: guardado normal y restauracion con otra instancia, getter bloqueado, lectura bloqueada tras una carga correcta, cuota agotada y nuevos resultados conservados en memoria.
+- Limite: el respaldo pertenece a la instancia de repositorio; no sincroniza pestañas ni conserva datos tras recargar en modo memoria. Los adaptadores antiguos siguen disponibles para pruebas o consumidores que quieran recibir los errores.
+- Pregunta de entrevista: por que no ocultar todos los errores sin aviso? Defensa: degradar a memoria mantiene la partida operativa, pero el usuario necesita conocer el alcance real del guardado.

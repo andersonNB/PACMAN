@@ -4,6 +4,48 @@ const DEFAULT_STORAGE_KEY = "pacman-architecture-practice.high-scores";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
+export type SafeBrowserScoreRepository = ScoreRepository & Readonly<{
+  getPersistenceMode: () => "persistent" | "memory";
+}>;
+
+export const createSafeBrowserScoreRepository = (
+  getStorage: () => StorageLike,
+  storageKey = DEFAULT_STORAGE_KEY
+): SafeBrowserScoreRepository => {
+  let mode: "persistent" | "memory" = "persistent";
+  let storage: StorageLike | null = null;
+  let entries: readonly ScoreEntry[] = [];
+
+  const refresh = (): void => {
+    if (mode === "memory") return;
+    try {
+      storage ??= getStorage();
+      entries = readEntries(storage, storageKey);
+    } catch {
+      mode = "memory";
+    }
+  };
+
+  return {
+    getPersistenceMode: () => mode,
+    async save(entry) {
+      refresh();
+      entries = sortEntries([...entries, entry]);
+      if (mode === "persistent" && storage !== null) {
+        try {
+          storage.setItem(storageKey, JSON.stringify(entries));
+        } catch {
+          mode = "memory";
+        }
+      }
+    },
+    async listTop(limit) {
+      refresh();
+      return entries.slice(0, limit);
+    }
+  };
+};
+
 export const createInMemoryScoreRepository = (
   seedEntries: readonly ScoreEntry[] = []
 ): ScoreRepository => {
