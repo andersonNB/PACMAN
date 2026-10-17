@@ -52,6 +52,11 @@ export const advancePlayer = ({ board, player, deltaMs }: AdvancePlayerParams): 
 
   let remainingDistance = player.velocity.unitsPerSecond * (deltaMs / 1000);
   let nextPlayer = player;
+  const boardQuery = createBoardQuery(board);
+
+  if (!isAtTileCenter(player.position) && player.requestedDirection === OPPOSITE_DIRECTION[player.currentDirection]) {
+    nextPlayer = { ...player, currentDirection: player.requestedDirection };
+  }
 
   while (remainingDistance > POSITION_EPSILON) {
     const currentTile = worldToTilePosition(nextPlayer.position);
@@ -62,10 +67,9 @@ export const advancePlayer = ({ board, player, deltaMs }: AdvancePlayerParams): 
     }
 
     const activeDirection = nextPlayer.currentDirection;
-    const boardQuery = createBoardQuery(board);
-    const movementOriginTile = atTileCenter
+    const movementOriginTile = boardQuery.normalizeTunnelExit(atTileCenter
       ? currentTile
-      : getMovementOriginTile(nextPlayer.position, activeDirection);
+      : getMovementOriginTile(nextPlayer.position, activeDirection));
 
     if (!boardQuery.getAllowedDirectionsForPlayer(movementOriginTile).includes(activeDirection)) {
       break;

@@ -105,3 +105,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - El juego puede iniciar aunque el navegador bloquee `localStorage`.
 - Si leer o guardar falla, conserva el ranking en memoria durante la sesion y muestra un aviso junto a High Scores.
 - Cuando el almacenamiento funciona, las puntuaciones siguen disponibles al recargar como antes.
+
+## Fase 45: inversion de direccion entre celdas
+
+- Solicitar la direccion opuesta hace que el jugador invierta en el siguiente tick, sin esperar al centro de la celda ni cambiar su posicion de golpe.
+- Los giros de 90 grados siguen almacenados hasta una interseccion valida.
+- La inversion y la continuidad del movimiento tambien funcionan al cruzar la union del tunel lateral.

@@ -760,3 +760,15 @@ Regla:
 - Criterios y pruebas: guardado normal y restauracion con otra instancia, getter bloqueado, lectura bloqueada tras una carga correcta, cuota agotada y nuevos resultados conservados en memoria.
 - Limite: el respaldo pertenece a la instancia de repositorio; no sincroniza pestañas ni conserva datos tras recargar en modo memoria. Los adaptadores antiguos siguen disponibles para pruebas o consumidores que quieran recibir los errores.
 - Pregunta de entrevista: por que no ocultar todos los errores sin aviso? Defensa: degradar a memoria mantiene la partida operativa, pero el usuario necesita conocer el alcance real del guardado.
+
+## 56. Fase 45 implementada
+
+- Objetivo e historia: como jugador perseguido, quiero invertir la marcha entre celdas para reaccionar sin esperar a la siguiente interseccion.
+- Problema: `advancePlayer` solo resolvia la direccion solicitada en centros; una inversion solicitada a mitad del trayecto se demoraba igual que un giro perpendicular.
+- Decision: si la solicitud es exactamente opuesta a la direccion actual y el jugador esta entre centros, invertir al comenzar el siguiente tick. La posicion y la velocidad permanecen intactas; el desplazamiento sigue siendo proporcional a deltaMs.
+- Alternativas: mantener toda direccion ligada a centros o mover directamente desde el adaptador de entrada. La regla pertenece al dominio y se aplica igual al teclado, cruceta y gestos.
+- Topologia: la celda de origen de un trayecto parcial se normaliza mediante BoardQuery antes de consultar sus salidas. Esto mantiene el movimiento cuando el origen logico queda fuera de los limites al atravesar el tunel.
+- Criterios y pruebas: cuatro inversiones horizontales/verticales entre centros, sin saltos de posicion; giro perpendicular pendiente; inversion a traves del tunel y continuidad en ticks posteriores. Las pruebas anteriores conservan paredes, detencion y giros anticipados.
+- Coste: una comparacion adicional por avance y reutilizacion de BoardQuery durante ese avance. No se agregan temporizadores ni dependencias visuales.
+- Limites: la inversion es inmediata respecto a la simulacion, con latencia maxima de un tick del runner; no se cambia el timestep del navegador ni la deteccion de colisiones.
+- Pregunta de entrevista: por que una inversion puede ocurrir entre centros pero un giro de 90 grados no? Defensa: la inversion permanece en el mismo segmento transitable; un giro perpendicular fuera de la grilla podria atravesar una pared.
