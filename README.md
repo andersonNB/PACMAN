@@ -111,3 +111,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Solicitar la direccion opuesta hace que el jugador invierta en el siguiente tick, sin esperar al centro de la celda ni cambiar su posicion de golpe.
 - Los giros de 90 grados siguen almacenados hasta una interseccion valida.
 - La inversion y la continuidad del movimiento tambien funcionan al cruzar la union del tunel lateral.
+
+## Fase 46: movimiento continuo de fantasmas
+
+- Los fantasmas llegan al centro de las esquinas sin frenarse en el borde de la celda durante ticks pequenos.
+- Las consultas de movimiento usan la celda de origen del trayecto y normalizan la union de tuneles.
+- El regreso y salida de los cuatro fantasmas se verifican en el mapa real con ticks de 100 ms, iguales a los del demo.

@@ -22,7 +22,7 @@ describe("arcade browser demo level", () => {
     expect(query.getAllowedDirectionsForPlayer({ row: 5, column: 20 })).toContain("right");
   });
 
-  it("routes every ghost back from distant corridors and out of its home again", () => {
+  it("routes every ghost home and out again using browser-sized ticks", () => {
     const board = createBoard(DEMO_LEVEL);
     const query = createBoardQuery(board);
     const origins = [
@@ -32,20 +32,25 @@ describe("arcade browser demo level", () => {
 
     for (const enemy of createEnemies(board, { unitsPerSecond: 2 })) {
       for (const origin of origins) {
-        const returned = advanceEnemy({
-          board,
-          enemy: markEnemyAsReturningHome({ ...enemy, position: tileToWorldPosition(origin) }),
-          playerPosition: tileToWorldPosition(board.playerSpawn),
-          playerDirection: "left", deltaMs: 60000, nextRandom: () => 0
-        });
+        let returned = markEnemyAsReturningHome({ ...enemy, position: tileToWorldPosition(origin) });
+        for (let tick = 0; tick < 600 && returned.navigationState !== "insideHome"; tick += 1) {
+          returned = advanceEnemy({
+            board, enemy: returned,
+            playerPosition: tileToWorldPosition(board.playerSpawn),
+            playerDirection: "left", deltaMs: 100, nextRandom: () => 0
+          });
+        }
         expect(returned.navigationState).toBe("insideHome");
         expect(returned.position).toEqual(tileToWorldPosition(enemy.homeTile));
 
-        const released = advanceEnemy({
-          board, enemy: releaseEnemyFromHome(returned),
-          playerPosition: tileToWorldPosition(board.playerSpawn),
-          playerDirection: "left", deltaMs: 3000, nextRandom: () => 0
-        });
+        let released = releaseEnemyFromHome(returned);
+        for (let tick = 0; tick < 100 && released.navigationState !== "outside"; tick += 1) {
+          released = advanceEnemy({
+            board, enemy: released,
+            playerPosition: tileToWorldPosition(board.playerSpawn),
+            playerDirection: "left", deltaMs: 100, nextRandom: () => 0
+          });
+        }
         expect(released.navigationState).toBe("outside");
         expect(query.isWalkableForPlayer(worldToTilePosition(released.position))).toBe(true);
       }

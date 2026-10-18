@@ -2,7 +2,7 @@ import type { Board, Enemy } from "./entities.js";
 import { createBoardQuery } from "./board.js";
 import { enemyStrategies } from "./enemy-strategies.js";
 import { chooseShortestEnemyDirection } from "./enemy-navigation.js";
-import { tileToWorldPosition, worldToTilePosition } from "./player.js";
+import { getMovementOriginTile, tileToWorldPosition, worldToTilePosition } from "./player.js";
 import type { Direction, TilePosition, Velocity, WorldPosition } from "./value-objects.js";
 
 const HALF_TILE = 0.5;
@@ -139,8 +139,9 @@ export const advanceEnemy = (params: {
 
   while (remainingDistance > POSITION_EPSILON) {
     const currentTile = worldToTilePosition(enemy.position);
+    const atTileCenter = isAtTileCenter(enemy.position);
 
-    if (isAtTileCenter(enemy.position)) {
+    if (atTileCenter) {
       if (enemy.navigationState === "returningHome" && sameTile(currentTile, enemy.homeTile)) {
         return resetEnemyToHome(enemy);
       }
@@ -164,8 +165,11 @@ export const advanceEnemy = (params: {
     }
 
     const activeDirection = enemy.currentDirection;
+    const movementOriginTile = boardQuery.normalizeTunnelExit(atTileCenter
+      ? currentTile
+      : getMovementOriginTile(enemy.position, activeDirection));
 
-    if (!boardQuery.getAllowedDirectionsForEnemy(currentTile, enemy.navigationState).includes(activeDirection)) {
+    if (!boardQuery.getAllowedDirectionsForEnemy(movementOriginTile, enemy.navigationState).includes(activeDirection)) {
       break;
     }
 

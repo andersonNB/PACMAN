@@ -772,3 +772,15 @@ Regla:
 - Coste: una comparacion adicional por avance y reutilizacion de BoardQuery durante ese avance. No se agregan temporizadores ni dependencias visuales.
 - Limites: la inversion es inmediata respecto a la simulacion, con latencia maxima de un tick del runner; no se cambia el timestep del navegador ni la deteccion de colisiones.
 - Pregunta de entrevista: por que una inversion puede ocurrir entre centros pero un giro de 90 grados no? Defensa: la inversion permanece en el mismo segmento transitable; un giro perpendicular fuera de la grilla podria atravesar una pared.
+
+## 57. Fase 46 implementada
+
+- Objetivo e historia: como jugador, quiero que los fantasmas recorran esquinas y tuneles sin quedarse detenidos antes de girar.
+- Problema: entre centros, `advanceEnemy` consultaba salidas desde el tile que contiene la posicion. Al entrar en una esquina, ese tile puede tener una pared en la direccion actual aunque todavia falte llegar a su centro.
+- Decision: calcular la celda de origen del segmento segun direccion y posicion, compartiendo `getMovementOriginTile` con el jugador. Normalizar el origen mediante BoardQuery al cruzar limites del tunel.
+- Se mantiene la seleccion de estrategia exclusivamente en centros. Las reglas de acceso a casa siguen siendo responsabilidad del tablero; no se ignoran paredes ni se corrigen posiciones con teletransportes.
+- Criterios y pruebas: cuatro orientaciones de esquina, equivalencia entre avance de 600 ms y ticks de 300/200/100 ms con modo fijo, tuneles en ambas direcciones y retorno en callejon sin atravesar pared.
+- La prueba del mapa real ahora usa ticks de 100 ms para el regreso desde cuatro posiciones y salida de cada fantasma. Sustituye el avance largo que no detectaba bloqueos entre ticks.
+- Coste: reutilizar una funcion de coordenadas existente y una consulta por segmento. No se agregan estados ni cambia el timestep.
+- Limite: equivalencia comprobada para rutas con modo y contexto constantes; cambios de modo, jugador o temporizadores siguen dependiendo de la coordinacion de cada tick.
+- Pregunta de entrevista: por que los tests de movimientos completos no detectaban este fallo? Defensa: el bug depende de detener un tick entre centros; probar particiones temporales y el mismo ritmo del runner cubre esa frontera.

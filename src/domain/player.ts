@@ -163,8 +163,8 @@ const movePosition = (position: WorldPosition, direction: Direction, distance: n
   };
 };
 
-// Between centers, movement is still governed by the tile the player left.
-const getMovementOriginTile = (position: WorldPosition, direction: Direction): TilePosition => {
+// Between centers, movement is governed by the tile the actor left.
+export const getMovementOriginTile = (position: WorldPosition, direction: Direction): TilePosition => {
   const vector = DIRECTION_VECTORS[direction];
 
   return worldToTilePosition({
