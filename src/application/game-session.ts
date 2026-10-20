@@ -12,7 +12,6 @@ import {
   advanceEnemy,
   createEnemies,
   detectEnemyCollision,
-  getDefaultEnemyBehaviorMode,
   markEnemyAsReturningHome,
   reverseEnemyDirection,
   releaseEnemyFromHome,
@@ -143,7 +142,10 @@ export const advanceGameSession = (
     deltaMs,
     countCollectedLevelItems(collectionResult.collectibles)
   );
-  const enemiesWithMode = applyGlobalEnemyMode(releaseProgression.enemies, modeProgression.mode);
+  const enemiesWithMode = applyGlobalEnemyMode(
+    normalizeEnemyModes(releaseProgression.enemies, frightenedTimerMs, modeProgression.mode),
+    modeProgression.mode
+  );
 
   const enemiesWithCurrentMode = collectionResult.frightenedTriggered
     ? enemiesWithMode.map((enemy) => enemy.navigationState === "returningHome"
@@ -233,7 +235,7 @@ export const advanceGameSession = (
   const enemiesAfterCollision = enemies.map((enemy) =>
     frightenedCollisionIds.has(enemy.id) ? markEnemyAsReturningHome(enemy) : enemy
   );
-  const normalizedEnemies = normalizeEnemyModes(enemiesAfterCollision, frightenedTimerMs);
+  const normalizedEnemies = normalizeEnemyModes(enemiesAfterCollision, frightenedTimerMs, modeProgression.mode);
   const frightenedChainCount = resolveFrightenedChainCount(
     state,
     frightenedCollisionCount,
@@ -524,13 +526,14 @@ const resolveFrightenedTimer = (
 
 const normalizeEnemyModes = (
   enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
-  frightenedTimerMs: number | null
+  frightenedTimerMs: number | null,
+  globalEnemyMode: "scatter" | "chase"
 ): readonly ReturnType<typeof setEnemyBehaviorMode>[] =>
   enemies.map((enemy) =>
     enemy.navigationState === "returningHome"
       ? enemy
       : frightenedTimerMs === null && enemy.behaviorMode === "frightened"
-      ? setEnemyBehaviorMode(enemy, getDefaultEnemyBehaviorMode(enemy))
+      ? setEnemyBehaviorMode(enemy, globalEnemyMode)
       : enemy
   );
 

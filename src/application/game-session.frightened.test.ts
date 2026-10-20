@@ -47,6 +47,80 @@ const createSession = (returningHomeReleaseDelayMs = 1500) =>
   );
 
 describe("game session frightened mode", () => {
+  it.each(["scatter", "chase"] as const)("restores %s and normal speed before movement at timeout", (mode) => {
+    const seed = createSession();
+    const state = {
+      ...seed, frightenedTimerMs: 100, globalEnemyMode: mode,
+      sessionConfig: {
+        ...seed.sessionConfig, frightenedSpeedMultiplier: 0.5,
+        enemyModeSchedule: [{ mode, durationMs: 10000 }]
+      },
+      player: { ...seed.player, velocity: { unitsPerSecond: 0 } },
+      enemies: seed.enemies.map((enemy) => ({
+        ...enemy, behaviorMode: "frightened" as const, currentDirection: "left" as const,
+        position: { x: 3.3, y: 2.5 },
+        velocity: { unitsPerSecond: 2 }
+      }))
+    };
+    const next = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    expect(next.enemies[0]?.behaviorMode).toBe(mode);
+    expect(next.enemies[0]?.position.x).toBeCloseTo(3.1);
+    expect(next.frightenedTimerMs).toBeNull();
+  });
+
+  it.each([99, 100])("makes collisions dangerous when the remaining %s ms expires in the next tick", (remainingMs) => {
+    const seed = createSession();
+    const state = {
+      ...seed, frightenedTimerMs: remainingMs, frightenedChainCount: 2,
+      player: { ...seed.player, velocity: { unitsPerSecond: 0 } },
+      enemies: seed.enemies.map((enemy) => ({
+        ...enemy, position: seed.player.position, behaviorMode: "frightened" as const
+      }))
+    };
+    const next = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    expect(next.status).toBe("playerDying");
+    expect(next.lives.value).toBe(2);
+    expect(next.score.value).toBe(0);
+    expect(next.frightenedTimerMs).toBeNull();
+    expect(next.frightenedChainCount).toBe(0);
+    expect(next.enemies[0]?.behaviorMode).toBe(next.globalEnemyMode);
+  });
+
+  it("still awards the frightened combo while time remains", () => {
+    const seed = createSession();
+    const state = {
+      ...seed, frightenedTimerMs: 101, frightenedChainCount: 2,
+      player: { ...seed.player, velocity: { unitsPerSecond: 0 } },
+      enemies: seed.enemies.map((enemy) => ({
+        ...enemy, position: seed.player.position, behaviorMode: "frightened" as const
+      }))
+    };
+    const next = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    expect(next.status).toBe("running");
+    expect(next.lives.value).toBe(3);
+    expect(next.score.value).toBe(800);
+    expect(next.frightenedTimerMs).toBe(1);
+    expect(next.enemies[0]?.navigationState).toBe("returningHome");
+  });
+
+  it("refreshes an expiring power pellet before resolving a collision", () => {
+    const seed = createSession();
+    const pelletPosition = tileToWorldPosition({ row: 1, column: 2 });
+    const state = {
+      ...seed, frightenedTimerMs: 50, frightenedChainCount: 2,
+      player: { ...seed.player, position: pelletPosition, velocity: { unitsPerSecond: 0 } },
+      enemies: seed.enemies.map((enemy) => ({
+        ...enemy, position: pelletPosition, behaviorMode: "frightened" as const
+      }))
+    };
+    const next = advanceGameSession(state, 100, createDeterministicRandom([0.2]));
+    expect(next.status).toBe("running");
+    expect(next.lives.value).toBe(3);
+    expect(next.score.value).toBe(250);
+    expect(next.frightenedTimerMs).toBe(1000);
+    expect(next.frightenedChainCount).toBe(1);
+  });
+
   it("activates frightened mode after collecting a power pellet and restores enemy modes after timeout", () => {
     let state = createSession();
 
@@ -66,7 +140,7 @@ describe("game session frightened mode", () => {
     state = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
 
     expect(state.frightenedTimerMs).toBeNull();
-    expect(state.enemies[0]?.behaviorMode).toBe("chase");
+    expect(state.enemies[0]?.behaviorMode).toBe(state.globalEnemyMode);
   });
 
   it("sends frightened enemies back home and awards score instead of costing a life", () => {

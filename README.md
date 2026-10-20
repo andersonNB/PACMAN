@@ -117,3 +117,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Los fantasmas llegan al centro de las esquinas sin frenarse en el borde de la celda durante ticks pequenos.
 - Las consultas de movimiento usan la celda de origen del trayecto y normalizan la union de tuneles.
 - El regreso y salida de los cuatro fantasmas se verifican en el mapa real con ticks de 100 ms, iguales a los del demo.
+
+## Fase 47: expiracion consistente del potenciador
+
+- Cuando el temporizador llega a cero, los fantasmas recuperan el modo global y su velocidad normal antes de moverse y resolver colisiones.
+- Ya no hay un tick adicional en el que puedan comerse tras expirar el efecto.
+- Recoger otro pellet renueva la proteccion y reinicia el combo antes de evaluar una colision en ese tick.

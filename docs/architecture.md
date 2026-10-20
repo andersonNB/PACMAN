@@ -784,3 +784,14 @@ Regla:
 - Coste: reutilizar una funcion de coordenadas existente y una consulta por segmento. No se agregan estados ni cambia el timestep.
 - Limite: equivalencia comprobada para rutas con modo y contexto constantes; cambios de modo, jugador o temporizadores siguen dependiendo de la coordinacion de cada tick.
 - Pregunta de entrevista: por que los tests de movimientos completos no detectaban este fallo? Defensa: el bug depende de detener un tick entre centros; probar particiones temporales y el mismo ritmo del runner cubre esa frontera.
+
+## 58. Fase 47 implementada
+
+- Objetivo e historia: como jugador, quiero que la peligrosidad y velocidad de los fantasmas coincidan con el temporizador del potenciador.
+- Problema: el timer se actualizaba antes del movimiento pero `normalizeEnemyModes` se ejecutaba despues de las colisiones. El tick que agotaba el timer aun podia dar puntos por comer un fantasma y usaba velocidad reducida.
+- Decision: normalizar modos expirados antes de aplicar el modo global, mover enemigos y resolver colisiones. La restauracion usa Scatter/Chase global vigente, no el modo por defecto de la estrategia individual.
+- Orden: recoleccion, resolucion del timer, modo global, normalizacion, movimiento y colisiones. Recoger otro pellet renueva el timer y reinicia el combo antes de una posible colision.
+- Criterios y pruebas: 99 y 100 ms restantes frente a un tick de 100 ms producen colision peligrosa; 101 ms conserva proteccion y combo. Se comprueba renovacion en el tick de expiracion, recuperacion de Scatter/Chase y desplazamiento a velocidad normal.
+- Los fantasmas en retorno conservan su tratamiento especial. No se agrega inversion al terminar frightened; las inversiones por pellet nuevo o cambio global siguen como antes.
+- Tradeoff: la regla se resuelve en la frontera discreta del tick. Si el timer vence dentro del intervalo, todo el avance de ese tick usa el modo restaurado; no se subdividen trayectorias ni se calculan instantes continuos de colision. La precision temporal depende del timestep.
+- Pregunta de entrevista: por que importa el orden de sistemas en una simulacion? Defensa: actualizar un timer sin sincronizar el estado usado por movimiento y colision produce reglas contradictorias aunque cada funcion aislada parezca correcta.
