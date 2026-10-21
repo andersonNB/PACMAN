@@ -1,9 +1,10 @@
 import { createBoardQuery } from "./board.js";
 import type { Board } from "./entities.js";
+import { findGhostHomeExit } from "./ghost-home.js";
 import type { Direction, TilePosition } from "./value-objects.js";
 
 export type LevelIssue = Readonly<{
-  code: "noPellets" | "unreachableCollectible" | "disconnectedEnemySpawn";
+  code: "noPellets" | "unreachableCollectible" | "disconnectedEnemySpawn" | "unreachableEnemyExit";
   tile: TilePosition | null;
 }>;
 
@@ -20,16 +21,16 @@ const key = (tile: TilePosition): string => `${tile.row}:${tile.column}`;
 
 export const validatePlayableBoard = (board: Board): LevelValidationReport => {
   const query = createBoardQuery(board);
-  const reachable = (forEnemy: boolean): ReadonlySet<string> => {
-    const visited = new Set([key(board.playerSpawn)]);
-    const queue = [board.playerSpawn];
+  const reachable = (
+    origin: TilePosition,
+    getDirections: (tile: TilePosition) => readonly Direction[]
+  ): ReadonlySet<string> => {
+    const visited = new Set([key(origin)]);
+    const queue = [origin];
     for (let index = 0; index < queue.length; index += 1) {
       const tile = queue[index];
       if (tile === undefined) continue;
-      const directions = forEnemy
-        ? query.getAllowedDirectionsForEnemy(tile, "returningHome")
-        : query.getAllowedDirectionsForPlayer(tile);
-      for (const direction of directions) {
+      for (const direction of getDirections(tile)) {
         const vector = VECTORS[direction];
         const next = query.normalizeTunnelExit({
           row: tile.row + vector.row, column: tile.column + vector.column
@@ -43,8 +44,12 @@ export const validatePlayableBoard = (board: Board): LevelValidationReport => {
     return visited;
   };
 
-  const playerReachable = reachable(false);
-  const enemyReachable = reachable(true);
+  const playerReachable = reachable(board.playerSpawn, query.getAllowedDirectionsForPlayer);
+  const enemyReachable = reachable(
+    board.playerSpawn,
+    (tile) => query.getAllowedDirectionsForEnemy(tile, "returningHome")
+  );
+  const hasGhostHouse = board.tiles.some((tile) => tile.kind === "ghostHouse");
   const issues: LevelIssue[] = [];
   if (!board.tiles.some((tile) => tile.marker === "." || tile.marker === "o")) {
     issues.push({ code: "noPellets", tile: null });
@@ -57,6 +62,22 @@ export const validatePlayableBoard = (board: Board): LevelValidationReport => {
   for (const tile of board.enemySpawns) {
     if (!enemyReachable.has(key(tile))) {
       issues.push({ code: "disconnectedEnemySpawn", tile });
+    }
+
+    if (hasGhostHouse) {
+      const exitTile = findGhostHomeExit(board, tile);
+      const canLeaveHome = exitTile !== null && reachable(
+        tile,
+        (currentTile) => query.getAllowedDirectionsForEnemy(currentTile, "leavingHome")
+      ).has(key(exitTile));
+      const canReturnHome = exitTile !== null && reachable(
+        exitTile,
+        (currentTile) => query.getAllowedDirectionsForEnemy(currentTile, "returningHome")
+      ).has(key(tile));
+
+      if (!canLeaveHome || !canReturnHome) {
+        issues.push({ code: "unreachableEnemyExit", tile });
+      }
     }
   }
   return { playable: issues.length === 0, issues };

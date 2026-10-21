@@ -34,6 +34,13 @@ describe("playable level validation", () => {
     ] });
   });
 
+  it("rejects a ghost home with no player-walkable exit", () => {
+    expect(validate(["#########", "#P..R####", "####H####", "####E####", "#########"])).toEqual({
+      playable: false,
+      issues: [{ code: "unreachableEnemyExit", tile: { row: 3, column: 4 } }]
+    });
+  });
+
   it("considers the side tunnel when checking connected regions", () => {
     expect(validate(["#######", "TP#E.oT", "#######"]).playable).toBe(true);
   });

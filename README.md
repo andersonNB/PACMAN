@@ -123,3 +123,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Cuando el temporizador llega a cero, los fantasmas recuperan el modo global y su velocidad normal antes de moverse y resolver colisiones.
 - Ya no hay un tick adicional en el que puedan comerse tras expirar el efecto.
 - Recoger otro pellet renueva la proteccion y reinicia el combo antes de evaluar una colision en ese tick.
+
+## Fase 48: validacion de salida de la casa fantasma
+
+- Los niveles que declaran una casa (`H`) ahora comprueban que cada spawn enemigo puede alcanzar una salida jugable y regresar a su hogar usando sus reglas de navegacion.
+- Un fallo se informa como `unreachableEnemyExit` antes de arrancar el loop, evitando fantasmas atrapados en un mapa invalido.
+- Los mapas minimos sin casa fantasma siguen siendo compatibles para fixtures y pruebas aisladas.

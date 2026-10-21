@@ -2,6 +2,7 @@ import type { Board, Enemy } from "./entities.js";
 import { createBoardQuery } from "./board.js";
 import { enemyStrategies } from "./enemy-strategies.js";
 import { chooseShortestEnemyDirection } from "./enemy-navigation.js";
+import { findGhostHomeExit } from "./ghost-home.js";
 import { getMovementOriginTile, tileToWorldPosition, worldToTilePosition } from "./player.js";
 import type { Direction, TilePosition, Velocity, WorldPosition } from "./value-objects.js";
 
@@ -242,7 +243,10 @@ const resolveEnemyDirectionAtCenter = (
   if (enemy.navigationState === "returningHome" || enemy.navigationState === "leavingHome") {
     const target = enemy.navigationState === "returningHome"
       ? enemy.homeTile
-      : getHomeExitTargetTile(board, enemy.homeTile);
+      : findGhostHomeExit(board, enemy.homeTile);
+    if (target === null) {
+      return null;
+    }
     const direction = chooseShortestEnemyDirection(boardQuery, currentTile, target, enemy.navigationState);
     return direction === null ? null : { ...enemy, currentDirection: direction };
   }
@@ -352,22 +356,12 @@ const previousHalfStep = (coordinate: number): number => Math.ceil(coordinate - 
 const sameTile = (left: TilePosition, right: TilePosition): boolean =>
   left.row === right.row && left.column === right.column;
 
-const reachedHomeExit = (enemy: Enemy, board: Board): boolean =>
-  isAtTileCenter(enemy.position) &&
-  sameTile(worldToTilePosition(enemy.position), getHomeExitTargetTile(board, enemy.homeTile));
+const reachedHomeExit = (enemy: Enemy, board: Board): boolean => {
+  const exitTile = findGhostHomeExit(board, enemy.homeTile);
 
-const getHomeExitTargetTile = (board: Board, homeTile: TilePosition): TilePosition => {
-  const boardQuery = createBoardQuery(board);
-
-  for (let row = homeTile.row - 1; row >= 0; row -= 1) {
-    const candidate = { row, column: homeTile.column };
-
-    if (boardQuery.isWalkable(candidate)) {
-      return candidate;
-    }
-  }
-
-  return homeTile;
+  return exitTile !== null &&
+    isAtTileCenter(enemy.position) &&
+    sameTile(worldToTilePosition(enemy.position), exitTile);
 };
 
 const chooseDirectionByTarget = (

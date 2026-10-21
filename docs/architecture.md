@@ -795,3 +795,13 @@ Regla:
 - Los fantasmas en retorno conservan su tratamiento especial. No se agrega inversion al terminar frightened; las inversiones por pellet nuevo o cambio global siguen como antes.
 - Tradeoff: la regla se resuelve en la frontera discreta del tick. Si el timer vence dentro del intervalo, todo el avance de ese tick usa el modo restaurado; no se subdividen trayectorias ni se calculan instantes continuos de colision. La precision temporal depende del timestep.
 - Pregunta de entrevista: por que importa el orden de sistemas en una simulacion? Defensa: actualizar un timer sin sincronizar el estado usado por movimiento y colision produce reglas contradictorias aunque cada funcion aislada parezca correcta.
+
+## 59. Fase 48 implementada
+
+- Objetivo e historia: como autor de niveles, quiero detectar una casa de fantasmas sin salida antes de iniciar una partida, para no dejar enemigos atrapados durante el juego.
+- Problema: la validacion anterior comprobaba que un spawn podia regresar desde la zona exterior, pero no que el destino vertical de salida existiera ni que fuera alcanzable con el estado `leavingHome`.
+- Decision: `ghost-home.ts` concentra la regla topologica que busca la primera celda transitable por el jugador sobre el hogar. El movimiento y el validador usan la misma funcion, por lo que no pueden discrepar sobre cual es la salida.
+- Validacion: en mapas que incluyen tiles `H`, cada spawn debe poder llegar a esa salida con `leavingHome` y volver a su spawn con `returningHome`. El informe agrega `unreachableEnemyExit` sin ocultar otros errores del mapa.
+- Compatibilidad: los fixtures compactos que solo usan `E` no representan una casa y conservan el contrato anterior. La regla adicional se activa al declarar al menos un tile `H`.
+- Criterios y pruebas: se conserva el mapa arcade, las regiones desconectadas y los tuneles; se incorpora un hogar conectado para retorno, pero sin salida jugable, que se rechaza de forma determinista.
+- Pregunta de entrevista: por que extraer la salida de casa de `enemy.ts`? Defensa: es una regla de topologia del tablero compartida por navegacion y validacion; aislarla evita duplicacion y hace que el diagnostico represente exactamente el comportamiento en runtime.
