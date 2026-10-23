@@ -42,6 +42,34 @@ const createSession = () =>
   );
 
 describe("game session global enemy mode", () => {
+  it("ignores invalid mode durations instead of stalling the simulation", () => {
+    const state = startGameSession(createGameSession(createBoard(MODE_LEVEL), {
+      playerSpeedUnitsPerSecond: 2,
+      enemySpeedUnitsPerSecond: 0,
+      frightenedDurationMs: 1000,
+      enemyReleaseScheduleMs: [],
+      enemyModeSchedule: [
+        { mode: "scatter", durationMs: 0 },
+        { mode: "chase", durationMs: 500 },
+        { mode: "scatter", durationMs: -100 },
+        { mode: "chase", durationMs: Number.NaN }
+      ],
+      initialLives: 3,
+      scoring: { dotPoints: 10, powerPelletPoints: 50, fruitPoints: 100, enemyPoints: 200 },
+      respawnDelayMs: 1000,
+      levelCompletedDelayMs: 1000
+    }));
+
+    expect(state.sessionConfig.enemyModeSchedule).toEqual([{ mode: "chase", durationMs: 500 }]);
+    expect(state.globalEnemyMode).toBe("chase");
+
+    const advanced = advanceGameSession(state, 500, createDeterministicRandom([0.2]));
+
+    expect(advanced.tick).toBe(1);
+    expect(advanced.globalEnemyMode).toBe("chase");
+    expect(advanced.globalEnemyModeTimerMs).toBe(500);
+  });
+
   it("switches from scatter to chase when the schedule timer expires", () => {
     let state = createSession();
 

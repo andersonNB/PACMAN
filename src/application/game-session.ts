@@ -467,7 +467,7 @@ const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
   enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
   enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(config.enemyReleaseDotThresholds),
   elroyStages: normalizeElroyStages(config.elroyStages),
-  enemyModeSchedule: config.enemyModeSchedule,
+  enemyModeSchedule: normalizeEnemyModeSchedule(config.enemyModeSchedule),
   scoring: {
     dotPoints: config.scoring.dotPoints,
     powerPelletPoints: config.scoring.powerPelletPoints,
@@ -506,6 +506,15 @@ const normalizeElroyStages = (
       Number.isFinite(stage.speedMultiplier) &&
       stage.speedMultiplier > 1
   ) ?? [];
+
+const normalizeEnemyModeSchedule = (
+  enemyModeSchedule: SessionConfig["enemyModeSchedule"]
+): SessionConfigState["enemyModeSchedule"] =>
+  enemyModeSchedule.flatMap((phase) =>
+    Number.isFinite(phase.durationMs) && phase.durationMs > 0
+      ? [{ mode: phase.mode, durationMs: phase.durationMs }]
+      : []
+  );
 
 const resolveFrightenedTimer = (
   state: GameState,

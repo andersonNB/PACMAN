@@ -129,3 +129,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Los niveles que declaran una casa (`H`) ahora comprueban que cada spawn enemigo puede alcanzar una salida jugable y regresar a su hogar usando sus reglas de navegacion.
 - Un fallo se informa como `unreachableEnemyExit` antes de arrancar el loop, evitando fantasmas atrapados en un mapa invalido.
 - Los mapas minimos sin casa fantasma siguen siendo compatibles para fixtures y pruebas aisladas.
+
+## Fase 49: calendario de modos resistente
+
+- Las fases globales Scatter/Chase con duracion cero, negativa o no finita se descartan al crear la sesion.
+- Esto impide que una configuracion declarativa invalida bloquee la simulacion al cambiar de modo.
+- Si no queda ninguna fase valida, el juego conserva el modo actual sin intentar avanzar un calendario inexistente.

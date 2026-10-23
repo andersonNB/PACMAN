@@ -805,3 +805,12 @@ Regla:
 - Compatibilidad: los fixtures compactos que solo usan `E` no representan una casa y conservan el contrato anterior. La regla adicional se activa al declarar al menos un tile `H`.
 - Criterios y pruebas: se conserva el mapa arcade, las regiones desconectadas y los tuneles; se incorpora un hogar conectado para retorno, pero sin salida jugable, que se rechaza de forma determinista.
 - Pregunta de entrevista: por que extraer la salida de casa de `enemy.ts`? Defensa: es una regla de topologia del tablero compartida por navegacion y validacion; aislarla evita duplicacion y hace que el diagnostico represente exactamente el comportamiento en runtime.
+
+## 60. Fase 49 implementada
+
+- Objetivo e historia: como integrador de niveles, quiero que una configuracion de modos defectuosa no pueda detener el juego en produccion.
+- Problema: el cambio de Scatter/Chase suma la duracion de la siguiente fase hasta recuperar tiempo positivo. Una fase con duracion cero o negativa no progresa y podia dejar el ciclo en un bucle infinito.
+- Decision: normalizar `enemyModeSchedule` al crear `GameState`, conservando solo duraciones finitas y positivas. Se crea una nueva coleccion inmutable, por lo que la configuracion del consumidor no se modifica.
+- Comportamiento: si el calendario queda vacio, `resolveGlobalEnemyMode` mantiene el modo y el temporizador ya existentes, que es el contrato que tenia para un calendario vacio explicito.
+- Criterios y pruebas: una mezcla de duraciones `0`, negativa y `NaN` conserva la unica fase valida; un tick de 500 ms avanza sin bloqueo y reinicia su temporizador correctamente.
+- Pregunta de entrevista: por que validar configuracion en el limite de aplicacion y no dentro del bucle? Defensa: los invariantes se establecen una vez al construir la sesion, reduciendo ramas de runtime y evitando que datos externos lleguen al algoritmo temporal.
