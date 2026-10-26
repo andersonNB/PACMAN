@@ -50,6 +50,14 @@ const createSession = () =>
   );
 
 describe("game session states", () => {
+  it("ignores negative and non-finite elapsed time without mutating the session", () => {
+    const state = createSession();
+
+    expect(advanceGameSession(state, -100, createDeterministicRandom([0.2]))).toBe(state);
+    expect(advanceGameSession(state, Number.NaN, createDeterministicRandom([0.2]))).toBe(state);
+    expect(advanceGameSession(state, Number.POSITIVE_INFINITY, createDeterministicRandom([0.2]))).toBe(state);
+  });
+
   it("pauses ready without losing its timer or buffered direction and resumes ready", () => {
     const seed = createSession();
     let state = startGameSession(restartGameSession({

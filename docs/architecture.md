@@ -814,3 +814,12 @@ Regla:
 - Comportamiento: si el calendario queda vacio, `resolveGlobalEnemyMode` mantiene el modo y el temporizador ya existentes, que es el contrato que tenia para un calendario vacio explicito.
 - Criterios y pruebas: una mezcla de duraciones `0`, negativa y `NaN` conserva la unica fase valida; un tick de 500 ms avanza sin bloqueo y reinicia su temporizador correctamente.
 - Pregunta de entrevista: por que validar configuracion en el limite de aplicacion y no dentro del bucle? Defensa: los invariantes se establecen una vez al construir la sesion, reduciendo ramas de runtime y evitando que datos externos lleguen al algoritmo temporal.
+
+## 61. Fase 50 implementada
+
+- Objetivo e historia: como integrador del runner, quiero que una lectura de reloj invalida no corrompa el estado determinista de la partida.
+- Problema: `advanceGameSession` es un contrato publico y podia recibir `NaN`, infinito o un valor negativo. Estos valores se propagaban a temporizadores y podian convertirlos en `NaN` o aumentar su duracion.
+- Decision: rechazar al inicio del caso de uso los deltas no finitos y negativos, devolviendo la misma referencia de estado. El filtro se aplica antes de cualquier movimiento, recoleccion, aleatoriedad o incremento de tick.
+- Excepcion deliberada: `0 ms` se conserva como tick valido. El dominio ya usa ese caso para resolver colisiones, recoleccion o liberaciones basadas en estado sin desplazar entidades ni descontar tiempo.
+- Criterios y pruebas: `-100`, `NaN` e infinito no alteran la sesion en ejecucion. Las pruebas existentes con ticks de cero siguen verificando transiciones instantaneas.
+- Pregunta de entrevista: por que no convertir valores invalidos a cero? Defensa: convertirlos podria disparar colisiones o eventos inesperados; devolver el mismo estado expresa que el runner no produjo tiempo valido.

@@ -95,6 +95,11 @@ export const advanceGameSession = (
   deltaMs: number,
   nextRandom: RandomNumberSource = Math.random
 ): GameState => {
+  // Zero is a valid event-only tick; negative and non-finite values must not mutate time.
+  if (!Number.isFinite(deltaMs) || deltaMs < 0) {
+    return state;
+  }
+
   if (state.status === "paused" || state.status === "idle" || state.status === "gameOver" || state.status === "victory") {
     return state;
   }

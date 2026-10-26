@@ -135,3 +135,8 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 - Las fases globales Scatter/Chase con duracion cero, negativa o no finita se descartan al crear la sesion.
 - Esto impide que una configuracion declarativa invalida bloquee la simulacion al cambiar de modo.
 - Si no queda ninguna fase valida, el juego conserva el modo actual sin intentar avanzar un calendario inexistente.
+
+## Fase 50: ticks temporales seguros
+
+- La simulacion ignora ticks negativos, `NaN` e infinitos sin modificar posiciones, timers ni contador de ticks.
+- Los ticks de `0 ms` siguen permitidos para resolver hechos instantaneos, como una colision o una liberacion por pellets.
