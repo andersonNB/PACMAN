@@ -31,6 +31,8 @@ type ScorePopup = Readonly<{
   startedAtMs: number;
 }>;
 
+export type GhostFace = "normal" | "frightened" | "eyes";
+
 const COLORS = {
   background: "#07111f",
   wall: "#3b86ff",
@@ -857,6 +859,28 @@ const drawGhost = (
     context.fill();
   }
 
+  const face = resolveGhostFace(visualState);
+
+  if (face === "frightened") {
+    const faceColor = visualState.color === COLORS.frightenedFlash ? COLORS.frightened : "#f3f6ff";
+    context.fillStyle = faceColor;
+    context.beginPath();
+    context.arc(centerX - 6, centerY - 3, 2, 0, Math.PI * 2);
+    context.arc(centerX + 6, centerY - 3, 2, 0, Math.PI * 2);
+    context.fill();
+
+    context.strokeStyle = faceColor;
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(centerX - 9, centerY + 9);
+    context.lineTo(centerX - 5, centerY + 6);
+    context.lineTo(centerX - 1, centerY + 9);
+    context.lineTo(centerX + 3, centerY + 6);
+    context.lineTo(centerX + 7, centerY + 9);
+    context.stroke();
+    return;
+  }
+
   context.fillStyle = "#ffffff";
   context.beginPath();
   context.arc(centerX - 7, centerY - 2, 5, 0, Math.PI * 2);
@@ -869,19 +893,10 @@ const drawGhost = (
   context.arc(centerX - 7 + pupilOffset.x, centerY - 2 + pupilOffset.y, 2.35, 0, Math.PI * 2);
   context.arc(centerX + 7 + pupilOffset.x, centerY - 2 + pupilOffset.y, 2.35, 0, Math.PI * 2);
   context.fill();
-
-  if (visualState.frightened && !visualState.returningHome) {
-    context.strokeStyle = visualState.color === COLORS.frightenedFlash ? COLORS.frightened : "#f3f6ff";
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(centerX - 9, centerY + 9);
-    context.lineTo(centerX - 5, centerY + 6);
-    context.lineTo(centerX - 1, centerY + 9);
-    context.lineTo(centerX + 3, centerY + 6);
-    context.lineTo(centerX + 7, centerY + 9);
-    context.stroke();
-  }
 };
+
+export const resolveGhostFace = (visualState: Pick<Parameters<typeof drawGhost>[3], "frightened" | "returningHome">): GhostFace =>
+  visualState.returningHome ? "eyes" : visualState.frightened ? "frightened" : "normal";
 
 const directionToPupilOffset = (direction: Direction): { x: number; y: number } => {
   if (direction === "up") {

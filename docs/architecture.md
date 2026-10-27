@@ -823,3 +823,12 @@ Regla:
 - Excepcion deliberada: `0 ms` se conserva como tick valido. El dominio ya usa ese caso para resolver colisiones, recoleccion o liberaciones basadas en estado sin desplazar entidades ni descontar tiempo.
 - Criterios y pruebas: `-100`, `NaN` e infinito no alteran la sesion en ejecucion. Las pruebas existentes con ticks de cero siguen verificando transiciones instantaneas.
 - Pregunta de entrevista: por que no convertir valores invalidos a cero? Defensa: convertirlos podria disparar colisiones o eventos inesperados; devolver el mismo estado expresa que el runner no produjo tiempo valido.
+
+## 62. Fase 51 implementada
+
+- Objetivo e historia: como jugador, quiero distinguir de inmediato un fantasma vulnerable de uno normal o de los ojos que regresan a casa, acercando el demo al lenguaje visual del arcade.
+- Problema: el renderer aplicaba los mismos ojos con pupilas direccionales a todos los estados. El modo frightened quedaba mezclado con la iconografia de los fantasmas normales.
+- Decision: `resolveGhostFace` deriva una variante visual pura desde el snapshot: `normal`, `frightened` u `eyes`. El renderer no agrega estado ni temporizadores al dominio.
+- Renderizado: frightened usa ojos pequeños y una boca zigzag cuyo color se invierte con el parpadeo azul/blanco; returningHome prioriza ojos direccionales incluso si conserva un modo frightened residual.
+- Criterios y pruebas: se prueban las tres variantes, incluida la prioridad del retorno sobre frightened. El canvas conserva color, parpadeo y movimiento interpolado existentes.
+- Pregunta de entrevista: por que esta regla vive en presentación? Defensa: no altera velocidad, colisión ni transición de estado; es una proyección del snapshot que puede cambiar sin afectar la simulación determinista.

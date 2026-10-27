@@ -140,3 +140,9 @@ La logica del juego no depende de React, Next.js, Canvas, DOM ni `requestAnimati
 
 - La simulacion ignora ticks negativos, `NaN` e infinitos sin modificar posiciones, timers ni contador de ticks.
 - Los ticks de `0 ms` siguen permitidos para resolver hechos instantaneos, como una colision o una liberacion por pellets.
+
+## Fase 51: caras arcade de fantasmas
+
+- Los fantasmas frightened ahora muestran ojos pequeños y boca zigzag, sin las pupilas direccionales de los fantasmas normales.
+- Los fantasmas que regresan a casa conservan el aspecto de solo ojos, orientados según su ruta.
+- El cambio es solo de presentación y no modifica la simulación ni el comportamiento de enemigos.
