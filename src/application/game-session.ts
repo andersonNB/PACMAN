@@ -1,719 +1,853 @@
-import type { GameSnapshot } from "./contracts.js";
-import type { Board, GameState, SessionConfigState } from "../domain/entities.js";
+import type {GameSnapshot} from "./contracts.js";
+import type {Board, GameState, SessionConfigState} from "../domain/entities.js";
 import {
-  activateEligibleFruits,
-  advanceFruitTimers,
-  collectAtPlayerTile,
-  createCollectiblesFromBoard,
-  deferFruitSpawn,
-  type CollectibleConfig
+	activateEligibleFruits,
+	advanceFruitTimers,
+	collectAtPlayerTile,
+	createCollectiblesFromBoard,
+	deferFruitSpawn,
+	type CollectibleConfig,
 } from "../domain/collectibles.js";
 import {
-  advanceEnemy,
-  createEnemies,
-  detectEnemyCollision,
-  markEnemyAsReturningHome,
-  reverseEnemyDirection,
-  releaseEnemyFromHome,
-  setEnemyBehaviorMode,
-  type RandomNumberSource
+	advanceEnemy,
+	createEnemies,
+	detectEnemyCollision,
+	markEnemyAsReturningHome,
+	reverseEnemyDirection,
+	releaseEnemyFromHome,
+	setEnemyBehaviorMode,
+	type RandomNumberSource,
 } from "../domain/enemy.js";
-import { createPlayer, advancePlayer, requestPlayerDirection } from "../domain/player.js";
-import type { Direction } from "../domain/value-objects.js";
+import {
+	createPlayer,
+	advancePlayer,
+	requestPlayerDirection,
+} from "../domain/player.js";
+import type {Direction} from "../domain/value-objects.js";
 
 export type SessionConfig = Readonly<{
-  playerSpeedUnitsPerSecond: number;
-  enemySpeedUnitsPerSecond: number;
-  extraLifeScore?: number;
-  fruitSpawnAfterDots?: number;
-  fruitSpawnThresholds?: readonly number[];
-  fruitPointsBySpawn?: readonly number[];
-  fruitVisibleDurationMs?: number;
-  frightenedSpeedMultiplier?: number;
-  returningHomeSpeedMultiplier?: number;
-  returningHomeReleaseDelayMs?: number;
-  readyDelayMs?: number;
-  frightenedDurationMs: number;
-  enemyReleaseScheduleMs: readonly number[];
-  enemyReleaseDotThresholds?: readonly number[];
-  elroyStages?: readonly Readonly<{
-    remainingPellets: number;
-    speedMultiplier: number;
-  }>[];
-  enemyModeSchedule: readonly Readonly<{
-    mode: "scatter" | "chase";
-    durationMs: number;
-  }>[];
-  initialLives: number;
-  scoring: CollectibleConfig & Readonly<{
-    enemyPoints: number;
-  }>;
-  respawnDelayMs: number;
-  levelCompletedDelayMs: number;
+	playerSpeedUnitsPerSecond: number;
+	enemySpeedUnitsPerSecond: number;
+	extraLifeScore?: number;
+	fruitSpawnAfterDots?: number;
+	fruitSpawnThresholds?: readonly number[];
+	fruitPointsBySpawn?: readonly number[];
+	fruitVisibleDurationMs?: number;
+	frightenedSpeedMultiplier?: number;
+	returningHomeSpeedMultiplier?: number;
+	returningHomeReleaseDelayMs?: number;
+	readyDelayMs?: number;
+	frightenedDurationMs: number;
+	enemyReleaseScheduleMs: readonly number[];
+	enemyReleaseDotThresholds?: readonly number[];
+	elroyStages?: readonly Readonly<{
+		remainingPellets: number;
+		speedMultiplier: number;
+	}>[];
+	enemyModeSchedule: readonly Readonly<{
+		mode: "scatter" | "chase";
+		durationMs: number;
+	}>[];
+	initialLives: number;
+	scoring: CollectibleConfig &
+		Readonly<{
+			enemyPoints: number;
+		}>;
+	respawnDelayMs: number;
+	levelCompletedDelayMs: number;
 }>;
 
-export const createGameSession = (board: Board, config: SessionConfig): GameState =>
-  createInitialGameState(board, toSessionConfigState(config));
+export const createGameSession = (
+	board: Board,
+	config: SessionConfig,
+): GameState => createInitialGameState(board, toSessionConfigState(config));
 
 export const startGameSession = (state: GameState): GameState =>
-  state.status === "idle" ? enterReadyState(state) : state;
+	state.status === "idle" ? enterReadyState(state) : state;
 
 export const pauseGameSession = (state: GameState): GameState =>
-  state.status === "running" || state.status === "ready"
-    ? {
-        ...state,
-        status: "paused",
-        resumeStatus: state.status
-      }
-    : state;
+	state.status === "running" || state.status === "ready"
+		? {
+				...state,
+				status: "paused",
+				resumeStatus: state.status,
+			}
+		: state;
 
 export const resumeGameSession = (state: GameState): GameState =>
-  state.status === "paused"
-    ? {
-        ...state,
-        status: state.resumeStatus ?? "running",
-        resumeStatus: null
-      }
-    : state;
+	state.status === "paused"
+		? {
+				...state,
+				status: state.resumeStatus ?? "running",
+				resumeStatus: null,
+			}
+		: state;
 
 export const restartGameSession = (state: GameState): GameState =>
-  createInitialGameState(state.board, state.sessionConfig);
+	createInitialGameState(state.board, state.sessionConfig);
 
-export const requestDirectionForSession = (state: GameState, direction: Direction): GameState => {
-  const stateWithRequestedDirection = {
-    ...state,
-    player: requestPlayerDirection(state.player, direction)
-  };
+export const requestDirectionForSession = (
+	state: GameState,
+	direction: Direction,
+): GameState => {
+	const stateWithRequestedDirection = {
+		...state,
+		player: requestPlayerDirection(state.player, direction),
+	};
 
-  return state.status === "idle"
-    ? enterReadyState(stateWithRequestedDirection)
-    : stateWithRequestedDirection;
+	return state.status === "idle"
+		? enterReadyState(stateWithRequestedDirection)
+		: stateWithRequestedDirection;
 };
 
 export const advanceGameSession = (
-  state: GameState,
-  deltaMs: number,
-  nextRandom: RandomNumberSource = Math.random
+	state: GameState,
+	deltaMs: number,
+	nextRandom: RandomNumberSource = Math.random,
 ): GameState => {
-  // Zero is a valid event-only tick; negative and non-finite values must not mutate time.
-  if (!Number.isFinite(deltaMs) || deltaMs < 0) {
-    return state;
-  }
+	// Zero is a valid event-only tick; negative and non-finite values must not mutate time.
+	if (!Number.isFinite(deltaMs) || deltaMs < 0) {
+		return state;
+	}
 
-  if (state.status === "paused" || state.status === "idle" || state.status === "gameOver" || state.status === "victory") {
-    return state;
-  }
+	if (
+		state.status === "paused" ||
+		state.status === "idle" ||
+		state.status === "gameOver" ||
+		state.status === "victory"
+	) {
+		return state;
+	}
 
-  if (state.status === "ready") {
-    return advanceReadyState(state, deltaMs);
-  }
+	if (state.status === "ready") {
+		return advanceReadyState(state, deltaMs);
+	}
 
-  if (state.status === "playerDying") {
-    return advancePlayerDyingState(state, deltaMs);
-  }
+	if (state.status === "playerDying") {
+		return advancePlayerDyingState(state, deltaMs);
+	}
 
-  if (state.status === "levelCompleted") {
-    return advanceLevelCompletedState(state, deltaMs);
-  }
+	if (state.status === "levelCompleted") {
+		return advanceLevelCompletedState(state, deltaMs);
+	}
 
-  const previousPlayerPosition = state.player.position;
-  const previousEnemyPositions = new Map(state.enemies.map((enemy) => [enemy.id, enemy.position] as const));
+	const previousPlayerPosition = state.player.position;
+	const previousEnemyPositions = new Map(
+		state.enemies.map((enemy) => [enemy.id, enemy.position] as const),
+	);
 
-  const player = advancePlayer({
-    board: state.board,
-    player: state.player,
-    deltaMs
-  });
+	const player = advancePlayer({
+		board: state.board,
+		player: state.player,
+		deltaMs,
+	});
 
-  const collectionResult = collectAtPlayerTile({
-    collectibles: state.collectibles,
-    playerPosition: player.position
-  });
-  const collectibles = activateEligibleFruits(
-    advanceFruitTimers(collectionResult.collectibles, deltaMs),
-    state.sessionConfig.fruitSpawnThresholds,
-    state.sessionConfig.fruitVisibleDurationMs,
-    state.sessionConfig.fruitPointsBySpawn
-  );
-  const elroySpeedMultiplier = resolveElroySpeedMultiplier(
-    collectibles,
-    state.sessionConfig.elroyStages
-  );
+	const collectionResult = collectAtPlayerTile({
+		collectibles: state.collectibles,
+		playerPosition: player.position,
+	});
+	const collectibles = activateEligibleFruits(
+		advanceFruitTimers(collectionResult.collectibles, deltaMs),
+		state.sessionConfig.fruitSpawnThresholds,
+		state.sessionConfig.fruitVisibleDurationMs,
+		state.sessionConfig.fruitPointsBySpawn,
+	);
+	const elroySpeedMultiplier = resolveElroySpeedMultiplier(
+		collectibles,
+		state.sessionConfig.elroyStages,
+	);
 
-  const frightenedTimerMs = resolveFrightenedTimer(state, deltaMs, collectionResult.frightenedTriggered);
-  const modeProgression = resolveGlobalEnemyMode(state, deltaMs, frightenedTimerMs);
-  const releaseProgression = resolveEnemyRelease(
-    state,
-    deltaMs,
-    countCollectedLevelItems(collectionResult.collectibles)
-  );
-  const enemiesWithMode = applyGlobalEnemyMode(
-    normalizeEnemyModes(releaseProgression.enemies, frightenedTimerMs, modeProgression.mode),
-    modeProgression.mode
-  );
+	const frightenedTimerMs = resolveFrightenedTimer(
+		state,
+		deltaMs,
+		collectionResult.frightenedTriggered,
+	);
+	const modeProgression = resolveGlobalEnemyMode(
+		state,
+		deltaMs,
+		frightenedTimerMs,
+	);
+	const releaseProgression = resolveEnemyRelease(
+		state,
+		deltaMs,
+		countCollectedLevelItems(collectionResult.collectibles),
+	);
+	const enemiesWithMode = applyGlobalEnemyMode(
+		normalizeEnemyModes(
+			releaseProgression.enemies,
+			frightenedTimerMs,
+			modeProgression.mode,
+		),
+		modeProgression.mode,
+	);
 
-  const enemiesWithCurrentMode = collectionResult.frightenedTriggered
-    ? enemiesWithMode.map((enemy) => enemy.navigationState === "returningHome"
-      ? enemy
-      : setEnemyBehaviorMode(enemy, "frightened"))
-    : enemiesWithMode;
-  const shouldReverseEnemies = collectionResult.frightenedTriggered || modeProgression.mode !== state.globalEnemyMode;
-  const enemiesWithDirection = shouldReverseEnemies
-    ? enemiesWithCurrentMode.map(reverseEnemyDirection)
-    : enemiesWithCurrentMode;
+	const enemiesWithCurrentMode = collectionResult.frightenedTriggered
+		? enemiesWithMode.map((enemy) =>
+				enemy.navigationState === "returningHome"
+					? enemy
+					: setEnemyBehaviorMode(enemy, "frightened"),
+			)
+		: enemiesWithMode;
+	const shouldReverseEnemies =
+		collectionResult.frightenedTriggered ||
+		modeProgression.mode !== state.globalEnemyMode;
+	const enemiesWithDirection = shouldReverseEnemies
+		? enemiesWithCurrentMode.map(reverseEnemyDirection)
+		: enemiesWithCurrentMode;
 
-  const enemies = enemiesWithDirection.map((initialEnemy) => {
-    let enemy = initialEnemy;
-    let movementDeltaMs = deltaMs;
+	const enemies = enemiesWithDirection.map((initialEnemy) => {
+		let enemy = initialEnemy;
+		let movementDeltaMs = deltaMs;
 
-    if (enemy.navigationState === "insideHome" && enemy.reentryReleaseTimerMs !== null) {
-      const remainingMs = Math.max(enemy.reentryReleaseTimerMs - deltaMs, 0);
-      movementDeltaMs = Math.max(deltaMs - enemy.reentryReleaseTimerMs, 0);
-      enemy = remainingMs > 0
-        ? { ...enemy, reentryReleaseTimerMs: remainingMs }
-        : setEnemyBehaviorMode(releaseEnemyFromHome(enemy), modeProgression.mode);
-    }
+		if (
+			enemy.navigationState === "insideHome" &&
+			enemy.reentryReleaseTimerMs !== null
+		) {
+			const remainingMs = Math.max(enemy.reentryReleaseTimerMs - deltaMs, 0);
+			movementDeltaMs = Math.max(deltaMs - enemy.reentryReleaseTimerMs, 0);
+			enemy =
+				remainingMs > 0
+					? {...enemy, reentryReleaseTimerMs: remainingMs}
+					: setEnemyBehaviorMode(
+							releaseEnemyFromHome(enemy),
+							modeProgression.mode,
+						);
+		}
 
-    const advancedEnemy = advanceEnemy({
-      board: state.board,
-      enemy,
-      playerPosition: player.position,
-      playerDirection: player.currentDirection,
-      deltaMs: movementDeltaMs,
-      speedMultiplier: enemy.navigationState === "returningHome"
-        ? state.sessionConfig.returningHomeSpeedMultiplier
-        : enemy.behaviorMode === "frightened"
-        ? state.sessionConfig.frightenedSpeedMultiplier
-        : enemy.strategyId === "chase" && enemy.navigationState === "outside"
-          ? elroySpeedMultiplier
-          : 1,
-      nextRandom
-    });
+		const advancedEnemy = advanceEnemy({
+			board: state.board,
+			enemy,
+			playerPosition: player.position,
+			playerDirection: player.currentDirection,
+			deltaMs: movementDeltaMs,
+			speedMultiplier:
+				enemy.navigationState === "returningHome"
+					? state.sessionConfig.returningHomeSpeedMultiplier
+					: enemy.behaviorMode === "frightened"
+						? state.sessionConfig.frightenedSpeedMultiplier
+						: enemy.strategyId === "chase" &&
+							  enemy.navigationState === "outside"
+							? elroySpeedMultiplier
+							: 1,
+			nextRandom,
+		});
 
-    if (enemy.navigationState === "returningHome" && advancedEnemy.navigationState === "insideHome") {
-      const delayMs = state.sessionConfig.returningHomeReleaseDelayMs;
-      return delayMs === 0
-        ? setEnemyBehaviorMode(releaseEnemyFromHome(advancedEnemy), modeProgression.mode)
-        : { ...advancedEnemy, reentryReleaseTimerMs: delayMs };
-    }
+		if (
+			enemy.navigationState === "returningHome" &&
+			advancedEnemy.navigationState === "insideHome"
+		) {
+			const delayMs = state.sessionConfig.returningHomeReleaseDelayMs;
+			return delayMs === 0
+				? setEnemyBehaviorMode(
+						releaseEnemyFromHome(advancedEnemy),
+						modeProgression.mode,
+					)
+				: {...advancedEnemy, reentryReleaseTimerMs: delayMs};
+		}
 
-    return advancedEnemy;
-  });
+		return advancedEnemy;
+	});
 
-  const collidedEnemies = enemies.filter((enemy) =>
-    detectEnemyCollision({
-      playerPosition: player.position,
-      previousPlayerPosition,
-      enemy,
-      previousEnemyPosition: previousEnemyPositions.get(enemy.id) ?? enemy.position
-    })
-  );
+	const collidedEnemies = enemies.filter((enemy) =>
+		detectEnemyCollision({
+			playerPosition: player.position,
+			previousPlayerPosition,
+			enemy,
+			previousEnemyPosition:
+				previousEnemyPositions.get(enemy.id) ?? enemy.position,
+		}),
+	);
 
-  const dangerousCollisions = collidedEnemies.filter(
-    (enemy) => enemy.navigationState === "outside" && enemy.behaviorMode !== "frightened"
-  );
+	const dangerousCollisions = collidedEnemies.filter(
+		(enemy) =>
+			enemy.navigationState === "outside" &&
+			enemy.behaviorMode !== "frightened",
+	);
 
-  if (dangerousCollisions.length > 0) {
-    const remainingLives = state.lives.value - 1;
+	if (dangerousCollisions.length > 0) {
+		const remainingLives = state.lives.value - 1;
 
-    return {
-      ...state,
-      player,
-      enemies,
-      lives: { value: Math.max(remainingLives, 0) },
-      status: remainingLives <= 0 ? "gameOver" : "playerDying",
-      phaseTimerMs: remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
-      frightenedTimerMs: null,
-      frightenedChainCount: 0,
-      nextEnemyReleaseIndex: 1,
-      enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
-      tick: state.tick + 1
-    };
-  }
+		return {
+			...state,
+			player,
+			enemies,
+			lives: {value: Math.max(remainingLives, 0)},
+			status: remainingLives <= 0 ? "gameOver" : "playerDying",
+			phaseTimerMs:
+				remainingLives <= 0 ? null : state.sessionConfig.respawnDelayMs,
+			frightenedTimerMs: null,
+			frightenedChainCount: 0,
+			nextEnemyReleaseIndex: 1,
+			enemyReleaseTimerMs:
+				state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
+			tick: state.tick + 1,
+		};
+	}
 
-  const frightenedCollisionIds = new Set(
-    collidedEnemies
-      .filter((enemy) => enemy.navigationState === "outside" && enemy.behaviorMode === "frightened")
-      .map((enemy) => enemy.id)
-  );
-  const frightenedCollisionCount = frightenedCollisionIds.size;
-  const enemiesAfterCollision = enemies.map((enemy) =>
-    frightenedCollisionIds.has(enemy.id) ? markEnemyAsReturningHome(enemy) : enemy
-  );
-  const normalizedEnemies = normalizeEnemyModes(enemiesAfterCollision, frightenedTimerMs, modeProgression.mode);
-  const frightenedChainCount = resolveFrightenedChainCount(
-    state,
-    frightenedCollisionCount,
-    frightenedTimerMs,
-    collectionResult.frightenedTriggered
-  );
-  const frightenedEnemyScore = computeFrightenedEnemyScore(
-    state.sessionConfig.scoring.enemyPoints,
-    collectionResult.frightenedTriggered ? 0 : state.frightenedChainCount,
-    frightenedCollisionCount
-  );
-  const nextScore = state.score.value + collectionResult.scoreDelta + frightenedEnemyScore;
-  const extraLifeAwarded = shouldAwardExtraLife(state, nextScore);
+	const frightenedCollisionIds = new Set(
+		collidedEnemies
+			.filter(
+				(enemy) =>
+					enemy.navigationState === "outside" &&
+					enemy.behaviorMode === "frightened",
+			)
+			.map((enemy) => enemy.id),
+	);
+	const frightenedCollisionCount = frightenedCollisionIds.size;
+	const enemiesAfterCollision = enemies.map((enemy) =>
+		frightenedCollisionIds.has(enemy.id)
+			? markEnemyAsReturningHome(enemy)
+			: enemy,
+	);
+	const normalizedEnemies = normalizeEnemyModes(
+		enemiesAfterCollision,
+		frightenedTimerMs,
+		modeProgression.mode,
+	);
+	const frightenedChainCount = resolveFrightenedChainCount(
+		state,
+		frightenedCollisionCount,
+		frightenedTimerMs,
+		collectionResult.frightenedTriggered,
+	);
+	const frightenedEnemyScore = computeFrightenedEnemyScore(
+		state.sessionConfig.scoring.enemyPoints,
+		collectionResult.frightenedTriggered ? 0 : state.frightenedChainCount,
+		frightenedCollisionCount,
+	);
+	const nextScore =
+		state.score.value + collectionResult.scoreDelta + frightenedEnemyScore;
+	const extraLifeAwarded = shouldAwardExtraLife(state, nextScore);
 
-  return {
-    ...state,
-    player,
-    enemies: normalizedEnemies,
-    collectibles,
-    score: {
-      value: nextScore
-    },
-    lives: extraLifeAwarded ? { value: state.lives.value + 1 } : state.lives,
-    extraLifeAwarded: state.extraLifeAwarded || extraLifeAwarded,
-    status: collectionResult.nextStatus === null ? state.status : collectionResult.nextStatus,
-    phaseTimerMs:
-      collectionResult.nextStatus === "levelCompleted" ? state.sessionConfig.levelCompletedDelayMs : state.phaseTimerMs,
-    frightenedTimerMs,
-    frightenedChainCount,
-    globalEnemyMode: modeProgression.mode,
-    globalEnemyModeIndex: modeProgression.index,
-    globalEnemyModeTimerMs: modeProgression.timerMs,
-    nextEnemyReleaseIndex: releaseProgression.nextEnemyReleaseIndex,
-    enemyReleaseTimerMs: releaseProgression.enemyReleaseTimerMs,
-    tick: state.tick + 1
-  };
+	return {
+		...state,
+		player,
+		enemies: normalizedEnemies,
+		collectibles,
+		score: {
+			value: nextScore,
+		},
+		lives: extraLifeAwarded ? {value: state.lives.value + 1} : state.lives,
+		extraLifeAwarded: state.extraLifeAwarded || extraLifeAwarded,
+		status:
+			collectionResult.nextStatus === null
+				? state.status
+				: collectionResult.nextStatus,
+		phaseTimerMs:
+			collectionResult.nextStatus === "levelCompleted"
+				? state.sessionConfig.levelCompletedDelayMs
+				: state.phaseTimerMs,
+		frightenedTimerMs,
+		frightenedChainCount,
+		globalEnemyMode: modeProgression.mode,
+		globalEnemyModeIndex: modeProgression.index,
+		globalEnemyModeTimerMs: modeProgression.timerMs,
+		nextEnemyReleaseIndex: releaseProgression.nextEnemyReleaseIndex,
+		enemyReleaseTimerMs: releaseProgression.enemyReleaseTimerMs,
+		tick: state.tick + 1,
+	};
 };
 
 export const toGameSnapshot = (state: GameState): GameSnapshot => ({
-  ...getPelletProgress(state.collectibles),
-  elroySpeedMultiplier: resolveElroySpeedMultiplier(state.collectibles, state.sessionConfig.elroyStages),
-  status: state.status,
-  tick: state.tick,
-  score: state.score.value,
-  lives: state.lives.value,
-  extraLifeAwarded: state.extraLifeAwarded,
-  phaseTimerMs: state.phaseTimerMs,
-  frightenedTimerMs: state.frightenedTimerMs,
-  frightenedChainCount: state.frightenedChainCount,
-  globalEnemyMode: state.globalEnemyMode,
-  globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
-  enemyReleaseTimerMs: state.enemyReleaseTimerMs,
-  player: {
-    position: state.player.position,
-    currentDirection: state.player.currentDirection,
-    requestedDirection: state.player.requestedDirection
-  },
-  enemies: state.enemies.map((enemy) => ({
-    id: enemy.id,
-    strategyId: enemy.strategyId,
-    position: enemy.position,
-    currentDirection: enemy.currentDirection,
-    behaviorMode: enemy.behaviorMode,
-    navigationState: enemy.navigationState,
-    reentryReleaseTimerMs: enemy.reentryReleaseTimerMs
-  })),
-  collectibles: state.collectibles.map((collectible) => ({
-    id: collectible.id,
-    kind: collectible.kind,
-    tile: collectible.tile,
-    points: collectible.points,
-    active: collectible.active,
-    collected: collectible.collected,
-    remainingMs: collectible.remainingMs
-  }))
+	...getPelletProgress(state.collectibles),
+	elroySpeedMultiplier: resolveElroySpeedMultiplier(
+		state.collectibles,
+		state.sessionConfig.elroyStages,
+	),
+	status: state.status,
+	tick: state.tick,
+	score: state.score.value,
+	lives: state.lives.value,
+	extraLifeAwarded: state.extraLifeAwarded,
+	phaseTimerMs: state.phaseTimerMs,
+	frightenedTimerMs: state.frightenedTimerMs,
+	frightenedChainCount: state.frightenedChainCount,
+	globalEnemyMode: state.globalEnemyMode,
+	globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
+	enemyReleaseTimerMs: state.enemyReleaseTimerMs,
+	player: {
+		position: state.player.position,
+		currentDirection: state.player.currentDirection,
+		requestedDirection: state.player.requestedDirection,
+	},
+	enemies: state.enemies.map((enemy) => ({
+		id: enemy.id,
+		strategyId: enemy.strategyId,
+		position: enemy.position,
+		currentDirection: enemy.currentDirection,
+		behaviorMode: enemy.behaviorMode,
+		navigationState: enemy.navigationState,
+		reentryReleaseTimerMs: enemy.reentryReleaseTimerMs,
+	})),
+	collectibles: state.collectibles.map((collectible) => ({
+		id: collectible.id,
+		kind: collectible.kind,
+		tile: collectible.tile,
+		points: collectible.points,
+		active: collectible.active,
+		collected: collectible.collected,
+		remainingMs: collectible.remainingMs,
+	})),
 });
 
-const advancePlayerDyingState = (state: GameState, deltaMs: number): GameState => {
-  const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
+const advancePlayerDyingState = (
+	state: GameState,
+	deltaMs: number,
+): GameState => {
+	const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
 
-  if (remainingTimerMs > 0) {
-    return {
-      ...state,
-      phaseTimerMs: remainingTimerMs,
-      tick: state.tick + 1
-    };
-  }
+	if (remainingTimerMs > 0) {
+		return {
+			...state,
+			phaseTimerMs: remainingTimerMs,
+			tick: state.tick + 1,
+		};
+	}
 
-  return enterReadyState({
-    ...state,
-    player: createPlayer({
-      spawnTile: state.board.playerSpawn,
-      velocity: state.player.velocity
-    }),
-    enemies: createEnemies(state.board, {
-      unitsPerSecond: state.sessionConfig.enemySpeedUnitsPerSecond
-    }),
-    frightenedTimerMs: null,
-    frightenedChainCount: 0,
-    globalEnemyMode: state.sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
-    globalEnemyModeIndex: 0,
-    globalEnemyModeTimerMs: state.sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
-    nextEnemyReleaseIndex: 1,
-    enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
-    tick: state.tick + 1
-  });
+	return enterReadyState({
+		...state,
+		player: createPlayer({
+			spawnTile: state.board.playerSpawn,
+			velocity: state.player.velocity,
+		}),
+		enemies: createEnemies(state.board, {
+			unitsPerSecond: state.sessionConfig.enemySpeedUnitsPerSecond,
+		}),
+		frightenedTimerMs: null,
+		frightenedChainCount: 0,
+		globalEnemyMode:
+			state.sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
+		globalEnemyModeIndex: 0,
+		globalEnemyModeTimerMs:
+			state.sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
+		nextEnemyReleaseIndex: 1,
+		enemyReleaseTimerMs: state.sessionConfig.enemyReleaseScheduleMs[0] ?? null,
+		tick: state.tick + 1,
+	});
 };
 
 const enterReadyState = (state: GameState): GameState =>
-  state.sessionConfig.readyDelayMs === 0
-    ? {
-        ...state,
-        status: "running",
-        phaseTimerMs: null
-      }
-    : {
-        ...state,
-        status: "ready",
-        phaseTimerMs: state.sessionConfig.readyDelayMs
-      };
+	state.sessionConfig.readyDelayMs === 0
+		? {
+				...state,
+				status: "running",
+				phaseTimerMs: null,
+			}
+		: {
+				...state,
+				status: "ready",
+				phaseTimerMs: state.sessionConfig.readyDelayMs,
+			};
 
 const advanceReadyState = (state: GameState, deltaMs: number): GameState => {
-  const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
+	const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
 
-  if (remainingTimerMs > 0) {
-    return {
-      ...state,
-      phaseTimerMs: remainingTimerMs,
-      tick: state.tick + 1
-    };
-  }
+	if (remainingTimerMs > 0) {
+		return {
+			...state,
+			phaseTimerMs: remainingTimerMs,
+			tick: state.tick + 1,
+		};
+	}
 
-  return {
-    ...state,
-    status: "running",
-    phaseTimerMs: null,
-    tick: state.tick + 1
-  };
+	return {
+		...state,
+		status: "running",
+		phaseTimerMs: null,
+		tick: state.tick + 1,
+	};
 };
 
-const advanceLevelCompletedState = (state: GameState, deltaMs: number): GameState => {
-  const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
+const advanceLevelCompletedState = (
+	state: GameState,
+	deltaMs: number,
+): GameState => {
+	const remainingTimerMs = Math.max((state.phaseTimerMs ?? 0) - deltaMs, 0);
 
-  if (remainingTimerMs > 0) {
-    return {
-      ...state,
-      phaseTimerMs: remainingTimerMs,
-      tick: state.tick + 1
-    };
-  }
+	if (remainingTimerMs > 0) {
+		return {
+			...state,
+			phaseTimerMs: remainingTimerMs,
+			tick: state.tick + 1,
+		};
+	}
 
-  return {
-    ...state,
-    status: "victory",
-    phaseTimerMs: null,
-    frightenedTimerMs: null,
-    frightenedChainCount: 0,
-    globalEnemyMode: state.globalEnemyMode,
-    globalEnemyModeIndex: state.globalEnemyModeIndex,
-    globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
-    nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
-    enemyReleaseTimerMs: state.enemyReleaseTimerMs,
-    tick: state.tick + 1
-  };
+	return {
+		...state,
+		status: "victory",
+		phaseTimerMs: null,
+		frightenedTimerMs: null,
+		frightenedChainCount: 0,
+		globalEnemyMode: state.globalEnemyMode,
+		globalEnemyModeIndex: state.globalEnemyModeIndex,
+		globalEnemyModeTimerMs: state.globalEnemyModeTimerMs,
+		nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
+		enemyReleaseTimerMs: state.enemyReleaseTimerMs,
+		tick: state.tick + 1,
+	};
 };
 
-const createInitialGameState = (board: Board, sessionConfig: SessionConfigState): GameState => ({
-  board,
-  player: createPlayer({
-    spawnTile: board.playerSpawn,
-    velocity: { unitsPerSecond: sessionConfig.playerSpeedUnitsPerSecond }
-  }),
-  enemies: createEnemies(board, {
-    unitsPerSecond: sessionConfig.enemySpeedUnitsPerSecond
-  }),
-  collectibles: deferFruitSpawn(
-    createCollectiblesFromBoard(board, {
-      dotPoints: sessionConfig.scoring.dotPoints,
-      powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
-      fruitPoints: sessionConfig.scoring.fruitPoints
-    }),
-    sessionConfig.fruitSpawnThresholds
-  ),
-  score: { value: 0 },
-  lives: { value: sessionConfig.initialLives },
-  extraLifeAwarded: false,
-  status: "idle",
-  resumeStatus: null,
-  tick: 0,
-  phaseTimerMs: null,
-  frightenedTimerMs: null,
-  frightenedChainCount: 0,
-  globalEnemyMode: sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
-  globalEnemyModeIndex: 0,
-  globalEnemyModeTimerMs: sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
-  nextEnemyReleaseIndex: 1,
-  enemyReleaseTimerMs: sessionConfig.enemyReleaseScheduleMs[0] ?? null,
-  sessionConfig
+const createInitialGameState = (
+	board: Board,
+	sessionConfig: SessionConfigState,
+): GameState => ({
+	board,
+	player: createPlayer({
+		spawnTile: board.playerSpawn,
+		velocity: {unitsPerSecond: sessionConfig.playerSpeedUnitsPerSecond},
+	}),
+	enemies: createEnemies(board, {
+		unitsPerSecond: sessionConfig.enemySpeedUnitsPerSecond,
+	}),
+	collectibles: deferFruitSpawn(
+		createCollectiblesFromBoard(board, {
+			dotPoints: sessionConfig.scoring.dotPoints,
+			powerPelletPoints: sessionConfig.scoring.powerPelletPoints,
+			fruitPoints: sessionConfig.scoring.fruitPoints,
+		}),
+		sessionConfig.fruitSpawnThresholds,
+	),
+	score: {value: 0},
+	lives: {value: sessionConfig.initialLives},
+	extraLifeAwarded: false,
+	status: "idle",
+	resumeStatus: null,
+	tick: 0,
+	phaseTimerMs: null,
+	frightenedTimerMs: null,
+	frightenedChainCount: 0,
+	globalEnemyMode: sessionConfig.enemyModeSchedule[0]?.mode ?? "scatter",
+	globalEnemyModeIndex: 0,
+	globalEnemyModeTimerMs: sessionConfig.enemyModeSchedule[0]?.durationMs ?? 0,
+	nextEnemyReleaseIndex: 1,
+	enemyReleaseTimerMs: sessionConfig.enemyReleaseScheduleMs[0] ?? null,
+	sessionConfig,
 });
 
 const toSessionConfigState = (config: SessionConfig): SessionConfigState => ({
-  initialLives: config.initialLives,
-  playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
-  enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
-  extraLifeScore: config.extraLifeScore !== undefined && config.extraLifeScore > 0 ? config.extraLifeScore : null,
-  fruitSpawnAfterDots:
-    config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0 ? config.fruitSpawnAfterDots : null,
-  fruitSpawnThresholds: normalizeFruitSpawnThresholds(config),
-  fruitPointsBySpawn: normalizeFruitPointTiers(config.fruitPointsBySpawn),
-  fruitVisibleDurationMs:
-    config.fruitVisibleDurationMs !== undefined && config.fruitVisibleDurationMs > 0
-      ? config.fruitVisibleDurationMs
-      : null,
-  frightenedSpeedMultiplier:
-    config.frightenedSpeedMultiplier !== undefined && config.frightenedSpeedMultiplier > 0
-      ? config.frightenedSpeedMultiplier
-      : 1,
-  returningHomeSpeedMultiplier:
-    config.returningHomeSpeedMultiplier !== undefined && config.returningHomeSpeedMultiplier > 0
-      ? config.returningHomeSpeedMultiplier
-      : 1,
-  readyDelayMs: config.readyDelayMs ?? 0,
-  returningHomeReleaseDelayMs:
-    config.returningHomeReleaseDelayMs !== undefined &&
-    Number.isFinite(config.returningHomeReleaseDelayMs) && config.returningHomeReleaseDelayMs >= 0
-      ? config.returningHomeReleaseDelayMs
-      : 1500,
-  frightenedDurationMs: config.frightenedDurationMs,
-  enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
-  enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(config.enemyReleaseDotThresholds),
-  elroyStages: normalizeElroyStages(config.elroyStages),
-  enemyModeSchedule: normalizeEnemyModeSchedule(config.enemyModeSchedule),
-  scoring: {
-    dotPoints: config.scoring.dotPoints,
-    powerPelletPoints: config.scoring.powerPelletPoints,
-    fruitPoints: config.scoring.fruitPoints,
-    enemyPoints: config.scoring.enemyPoints
-  },
-  respawnDelayMs: config.respawnDelayMs,
-  levelCompletedDelayMs: config.levelCompletedDelayMs
+	initialLives: config.initialLives,
+	playerSpeedUnitsPerSecond: config.playerSpeedUnitsPerSecond,
+	enemySpeedUnitsPerSecond: config.enemySpeedUnitsPerSecond,
+	extraLifeScore:
+		config.extraLifeScore !== undefined && config.extraLifeScore > 0
+			? config.extraLifeScore
+			: null,
+	fruitSpawnAfterDots:
+		config.fruitSpawnAfterDots !== undefined && config.fruitSpawnAfterDots > 0
+			? config.fruitSpawnAfterDots
+			: null,
+	fruitSpawnThresholds: normalizeFruitSpawnThresholds(config),
+	fruitPointsBySpawn: normalizeFruitPointTiers(config.fruitPointsBySpawn),
+	fruitVisibleDurationMs:
+		config.fruitVisibleDurationMs !== undefined &&
+		config.fruitVisibleDurationMs > 0
+			? config.fruitVisibleDurationMs
+			: null,
+	frightenedSpeedMultiplier:
+		config.frightenedSpeedMultiplier !== undefined &&
+		config.frightenedSpeedMultiplier > 0
+			? config.frightenedSpeedMultiplier
+			: 1,
+	returningHomeSpeedMultiplier:
+		config.returningHomeSpeedMultiplier !== undefined &&
+		config.returningHomeSpeedMultiplier > 0
+			? config.returningHomeSpeedMultiplier
+			: 1,
+	readyDelayMs: config.readyDelayMs ?? 0,
+	returningHomeReleaseDelayMs:
+		config.returningHomeReleaseDelayMs !== undefined &&
+		Number.isFinite(config.returningHomeReleaseDelayMs) &&
+		config.returningHomeReleaseDelayMs >= 0
+			? config.returningHomeReleaseDelayMs
+			: 1500,
+	frightenedDurationMs: config.frightenedDurationMs,
+	enemyReleaseScheduleMs: config.enemyReleaseScheduleMs,
+	enemyReleaseDotThresholds: normalizeEnemyReleaseDotThresholds(
+		config.enemyReleaseDotThresholds,
+	),
+	elroyStages: normalizeElroyStages(config.elroyStages),
+	enemyModeSchedule: normalizeEnemyModeSchedule(config.enemyModeSchedule),
+	scoring: {
+		dotPoints: config.scoring.dotPoints,
+		powerPelletPoints: config.scoring.powerPelletPoints,
+		fruitPoints: config.scoring.fruitPoints,
+		enemyPoints: config.scoring.enemyPoints,
+	},
+	respawnDelayMs: config.respawnDelayMs,
+	levelCompletedDelayMs: config.levelCompletedDelayMs,
 });
 
-const normalizeFruitSpawnThresholds = (config: SessionConfig): readonly number[] => {
-  const rawThresholds = config.fruitSpawnThresholds ??
-    (config.fruitSpawnAfterDots === undefined ? [] : [config.fruitSpawnAfterDots]);
+const normalizeFruitSpawnThresholds = (
+	config: SessionConfig,
+): readonly number[] => {
+	const rawThresholds =
+		config.fruitSpawnThresholds ??
+		(config.fruitSpawnAfterDots === undefined
+			? []
+			: [config.fruitSpawnAfterDots]);
 
-  return [...new Set(rawThresholds.filter((threshold) => Number.isFinite(threshold) && threshold > 0))]
-    .sort((left, right) => left - right);
+	return [
+		...new Set(
+			rawThresholds.filter(
+				(threshold) => Number.isFinite(threshold) && threshold > 0,
+			),
+		),
+	].sort((left, right) => left - right);
 };
 
-const normalizeFruitPointTiers = (fruitPointsBySpawn: readonly number[] | undefined): readonly number[] =>
-  fruitPointsBySpawn?.map((points) => Number.isFinite(points) && points > 0 ? points : null)
-    .filter((points): points is number => points !== null) ?? [];
+const normalizeFruitPointTiers = (
+	fruitPointsBySpawn: readonly number[] | undefined,
+): readonly number[] =>
+	fruitPointsBySpawn
+		?.map((points) => (Number.isFinite(points) && points > 0 ? points : null))
+		.filter((points): points is number => points !== null) ?? [];
 
 const normalizeEnemyReleaseDotThresholds = (
-  enemyReleaseDotThresholds: readonly number[] | undefined
+	enemyReleaseDotThresholds: readonly number[] | undefined,
 ): readonly number[] =>
-  enemyReleaseDotThresholds?.map((threshold) => Number.isFinite(threshold) && threshold > 0 ? threshold : null)
-    .filter((threshold): threshold is number => threshold !== null) ?? [];
+	enemyReleaseDotThresholds
+		?.map((threshold) =>
+			Number.isFinite(threshold) && threshold > 0 ? threshold : null,
+		)
+		.filter((threshold): threshold is number => threshold !== null) ?? [];
 
 const normalizeElroyStages = (
-  elroyStages: SessionConfig["elroyStages"]
-): readonly Readonly<{ remainingPellets: number; speedMultiplier: number }>[] =>
-  elroyStages?.filter(
-    (stage) =>
-      Number.isFinite(stage.remainingPellets) &&
-      stage.remainingPellets >= 0 &&
-      Number.isFinite(stage.speedMultiplier) &&
-      stage.speedMultiplier > 1
-  ) ?? [];
+	elroyStages: SessionConfig["elroyStages"],
+): readonly Readonly<{remainingPellets: number; speedMultiplier: number}>[] =>
+	elroyStages?.filter(
+		(stage) =>
+			Number.isFinite(stage.remainingPellets) &&
+			stage.remainingPellets >= 0 &&
+			Number.isFinite(stage.speedMultiplier) &&
+			stage.speedMultiplier > 1,
+	) ?? [];
 
 const normalizeEnemyModeSchedule = (
-  enemyModeSchedule: SessionConfig["enemyModeSchedule"]
+	enemyModeSchedule: SessionConfig["enemyModeSchedule"],
 ): SessionConfigState["enemyModeSchedule"] =>
-  enemyModeSchedule.flatMap((phase) =>
-    Number.isFinite(phase.durationMs) && phase.durationMs > 0
-      ? [{ mode: phase.mode, durationMs: phase.durationMs }]
-      : []
-  );
+	enemyModeSchedule.flatMap((phase) =>
+		Number.isFinite(phase.durationMs) && phase.durationMs > 0
+			? [{mode: phase.mode, durationMs: phase.durationMs}]
+			: [],
+	);
 
 const resolveFrightenedTimer = (
-  state: GameState,
-  deltaMs: number,
-  frightenedTriggered: boolean
+	state: GameState,
+	deltaMs: number,
+	frightenedTriggered: boolean,
 ): number | null => {
-  if (frightenedTriggered) {
-    return state.sessionConfig.frightenedDurationMs;
-  }
+	if (frightenedTriggered) {
+		return state.sessionConfig.frightenedDurationMs;
+	}
 
-  if (state.frightenedTimerMs === null) {
-    return null;
-  }
+	if (state.frightenedTimerMs === null) {
+		return null;
+	}
 
-  const nextTimer = Math.max(state.frightenedTimerMs - deltaMs, 0);
-  return nextTimer > 0 ? nextTimer : null;
+	const nextTimer = Math.max(state.frightenedTimerMs - deltaMs, 0);
+	return nextTimer > 0 ? nextTimer : null;
 };
 
 const normalizeEnemyModes = (
-  enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
-  frightenedTimerMs: number | null,
-  globalEnemyMode: "scatter" | "chase"
+	enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
+	frightenedTimerMs: number | null,
+	globalEnemyMode: "scatter" | "chase",
 ): readonly ReturnType<typeof setEnemyBehaviorMode>[] =>
-  enemies.map((enemy) =>
-    enemy.navigationState === "returningHome"
-      ? enemy
-      : frightenedTimerMs === null && enemy.behaviorMode === "frightened"
-      ? setEnemyBehaviorMode(enemy, globalEnemyMode)
-      : enemy
-  );
+	enemies.map((enemy) =>
+		enemy.navigationState === "returningHome"
+			? enemy
+			: frightenedTimerMs === null && enemy.behaviorMode === "frightened"
+				? setEnemyBehaviorMode(enemy, globalEnemyMode)
+				: enemy,
+	);
 
 const resolveFrightenedChainCount = (
-  state: GameState,
-  frightenedCollisionCount: number,
-  frightenedTimerMs: number | null,
-  frightenedTriggered: boolean
+	state: GameState,
+	frightenedCollisionCount: number,
+	frightenedTimerMs: number | null,
+	frightenedTriggered: boolean,
 ): number => {
-  if (frightenedTimerMs === null) {
-    return 0;
-  }
+	if (frightenedTimerMs === null) {
+		return 0;
+	}
 
-  const baseChainCount = frightenedTriggered ? 0 : state.frightenedChainCount;
-  return baseChainCount + frightenedCollisionCount;
+	const baseChainCount = frightenedTriggered ? 0 : state.frightenedChainCount;
+	return baseChainCount + frightenedCollisionCount;
 };
 
 const computeFrightenedEnemyScore = (
-  baseEnemyPoints: number,
-  chainStart: number,
-  frightenedCollisionCount: number
+	baseEnemyPoints: number,
+	chainStart: number,
+	frightenedCollisionCount: number,
 ): number => {
-  let total = 0;
+	let total = 0;
 
-  for (let index = 0; index < frightenedCollisionCount; index += 1) {
-    total += baseEnemyPoints * (2 ** (chainStart + index));
-  }
+	for (let index = 0; index < frightenedCollisionCount; index += 1) {
+		total += baseEnemyPoints * 2 ** (chainStart + index);
+	}
 
-  return total;
+	return total;
 };
 
 const shouldAwardExtraLife = (state: GameState, nextScore: number): boolean =>
-  !state.extraLifeAwarded &&
-  state.sessionConfig.extraLifeScore !== null &&
-  state.score.value < state.sessionConfig.extraLifeScore &&
-  nextScore >= state.sessionConfig.extraLifeScore;
+	!state.extraLifeAwarded &&
+	state.sessionConfig.extraLifeScore !== null &&
+	state.score.value < state.sessionConfig.extraLifeScore &&
+	nextScore >= state.sessionConfig.extraLifeScore;
 
 const resolveGlobalEnemyMode = (
-  state: GameState,
-  deltaMs: number,
-  frightenedTimerMs: number | null
+	state: GameState,
+	deltaMs: number,
+	frightenedTimerMs: number | null,
 ): Readonly<{
-  mode: "scatter" | "chase";
-  index: number;
-  timerMs: number;
+	mode: "scatter" | "chase";
+	index: number;
+	timerMs: number;
 }> => {
-  if (frightenedTimerMs !== null || state.sessionConfig.enemyModeSchedule.length === 0) {
-    return {
-      mode: state.globalEnemyMode,
-      index: state.globalEnemyModeIndex,
-      timerMs: state.globalEnemyModeTimerMs
-    };
-  }
+	if (
+		frightenedTimerMs !== null ||
+		state.sessionConfig.enemyModeSchedule.length === 0
+	) {
+		return {
+			mode: state.globalEnemyMode,
+			index: state.globalEnemyModeIndex,
+			timerMs: state.globalEnemyModeTimerMs,
+		};
+	}
 
-  let index = state.globalEnemyModeIndex;
-  let timerMs = state.globalEnemyModeTimerMs - deltaMs;
+	let index = state.globalEnemyModeIndex;
+	let timerMs = state.globalEnemyModeTimerMs - deltaMs;
 
-  while (timerMs <= 0 && state.sessionConfig.enemyModeSchedule.length > 0) {
-    index = (index + 1) % state.sessionConfig.enemyModeSchedule.length;
-    timerMs += state.sessionConfig.enemyModeSchedule[index]?.durationMs ?? 0;
-  }
+	while (timerMs <= 0 && state.sessionConfig.enemyModeSchedule.length > 0) {
+		index = (index + 1) % state.sessionConfig.enemyModeSchedule.length;
+		timerMs += state.sessionConfig.enemyModeSchedule[index]?.durationMs ?? 0;
+	}
 
-  const mode = state.sessionConfig.enemyModeSchedule[index]?.mode ?? state.globalEnemyMode;
+	const mode =
+		state.sessionConfig.enemyModeSchedule[index]?.mode ?? state.globalEnemyMode;
 
-  return {
-    mode,
-    index,
-    timerMs
-  };
+	return {
+		mode,
+		index,
+		timerMs,
+	};
 };
 
 const applyGlobalEnemyMode = (
-  enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
-  globalEnemyMode: "scatter" | "chase"
+	enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[],
+	globalEnemyMode: "scatter" | "chase",
 ): readonly ReturnType<typeof setEnemyBehaviorMode>[] =>
-  enemies.map((enemy) =>
-    enemy.navigationState === "returningHome" || enemy.behaviorMode === "frightened"
-      ? enemy
-      : setEnemyBehaviorMode(enemy, globalEnemyMode)
-  );
+	enemies.map((enemy) =>
+		enemy.navigationState === "returningHome" ||
+		enemy.behaviorMode === "frightened"
+			? enemy
+			: setEnemyBehaviorMode(enemy, globalEnemyMode),
+	);
 
 const resolveEnemyRelease = (
-  state: GameState,
-  deltaMs: number,
-  collectedLevelItems: number
+	state: GameState,
+	deltaMs: number,
+	collectedLevelItems: number,
 ): Readonly<{
-  enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[];
-  nextEnemyReleaseIndex: number;
-  enemyReleaseTimerMs: number | null;
+	enemies: readonly ReturnType<typeof setEnemyBehaviorMode>[];
+	nextEnemyReleaseIndex: number;
+	enemyReleaseTimerMs: number | null;
 }> => {
-  if (state.nextEnemyReleaseIndex >= state.enemies.length) {
-    return {
-      enemies: state.enemies,
-      nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
-      enemyReleaseTimerMs: null
-    };
-  }
+	if (state.nextEnemyReleaseIndex >= state.enemies.length) {
+		return {
+			enemies: state.enemies,
+			nextEnemyReleaseIndex: state.nextEnemyReleaseIndex,
+			enemyReleaseTimerMs: null,
+		};
+	}
 
-  let enemies = [...state.enemies];
-  let nextEnemyReleaseIndex = state.nextEnemyReleaseIndex;
-  let enemyReleaseTimerMs = state.enemyReleaseTimerMs === null
-    ? null
-    : state.enemyReleaseTimerMs - deltaMs;
+	let enemies = [...state.enemies];
+	let nextEnemyReleaseIndex = state.nextEnemyReleaseIndex;
+	let enemyReleaseTimerMs =
+		state.enemyReleaseTimerMs === null
+			? null
+			: state.enemyReleaseTimerMs - deltaMs;
 
-  while (nextEnemyReleaseIndex < enemies.length) {
-    const dotThreshold = state.sessionConfig.enemyReleaseDotThresholds[nextEnemyReleaseIndex - 1];
-    const releasedByDots = dotThreshold !== undefined && collectedLevelItems >= dotThreshold;
-    const releasedByTimer = enemyReleaseTimerMs !== null && enemyReleaseTimerMs <= 0;
+	while (nextEnemyReleaseIndex < enemies.length) {
+		const dotThreshold =
+			state.sessionConfig.enemyReleaseDotThresholds[nextEnemyReleaseIndex - 1];
+		const releasedByDots =
+			dotThreshold !== undefined && collectedLevelItems >= dotThreshold;
+		const releasedByTimer =
+			enemyReleaseTimerMs !== null && enemyReleaseTimerMs <= 0;
 
-    if (!releasedByDots && !releasedByTimer) {
-      break;
-    }
+		if (!releasedByDots && !releasedByTimer) {
+			break;
+		}
 
-    enemies = enemies.map((enemy, index) =>
-      index === nextEnemyReleaseIndex ? setEnemyBehaviorMode(releaseEnemyFromHome(enemy), state.globalEnemyMode) : enemy
-    );
-    nextEnemyReleaseIndex += 1;
+		enemies = enemies.map((enemy, index) =>
+			index === nextEnemyReleaseIndex
+				? setEnemyBehaviorMode(
+						releaseEnemyFromHome(enemy),
+						state.globalEnemyMode,
+					)
+				: enemy,
+		);
+		nextEnemyReleaseIndex += 1;
 
-    if (nextEnemyReleaseIndex >= enemies.length) {
-      enemyReleaseTimerMs = null;
-      break;
-    }
+		if (nextEnemyReleaseIndex >= enemies.length) {
+			enemyReleaseTimerMs = null;
+			break;
+		}
 
-    const nextReleaseDelayMs = state.sessionConfig.enemyReleaseScheduleMs[nextEnemyReleaseIndex - 1];
-    enemyReleaseTimerMs = releasedByDots
-      ? nextReleaseDelayMs ?? null
-      : enemyReleaseTimerMs === null
-        ? null
-        : enemyReleaseTimerMs + (nextReleaseDelayMs ?? 0);
-  }
+		const nextReleaseDelayMs =
+			state.sessionConfig.enemyReleaseScheduleMs[nextEnemyReleaseIndex - 1];
+		enemyReleaseTimerMs = releasedByDots
+			? (nextReleaseDelayMs ?? null)
+			: enemyReleaseTimerMs === null
+				? null
+				: enemyReleaseTimerMs + (nextReleaseDelayMs ?? 0);
+	}
 
-  return {
-    enemies,
-    nextEnemyReleaseIndex,
-    enemyReleaseTimerMs
-  };
+	return {
+		enemies,
+		nextEnemyReleaseIndex,
+		enemyReleaseTimerMs,
+	};
 };
+console.log("Game session module loaded successfully.");
+const countCollectedLevelItems = (
+	collectibles: GameState["collectibles"],
+): number =>
+	collectibles.filter(
+		(collectible) => collectible.kind !== "fruit" && !collectible.active,
+	).length;
 
-const countCollectedLevelItems = (collectibles: GameState["collectibles"]): number =>
-  collectibles.filter((collectible) => collectible.kind !== "fruit" && !collectible.active).length;
-
-const getPelletProgress = (collectibles: GameState["collectibles"]): Readonly<{
-  pelletsCollected: number;
-  pelletsTotal: number;
+const getPelletProgress = (
+	collectibles: GameState["collectibles"],
+): Readonly<{
+	pelletsCollected: number;
+	pelletsTotal: number;
 }> => {
-  const pellets = collectibles.filter((collectible) => collectible.kind !== "fruit");
+	const pellets = collectibles.filter(
+		(collectible) => collectible.kind !== "fruit",
+	);
 
-  return {
-    pelletsCollected: pellets.filter((collectible) => !collectible.active).length,
-    pelletsTotal: pellets.length
-  };
+	return {
+		pelletsCollected: pellets.filter((collectible) => !collectible.active)
+			.length,
+		pelletsTotal: pellets.length,
+	};
 };
 
 const resolveElroySpeedMultiplier = (
-  collectibles: GameState["collectibles"],
-  elroyStages: SessionConfigState["elroyStages"]
+	collectibles: GameState["collectibles"],
+	elroyStages: SessionConfigState["elroyStages"],
 ): number => {
-  const remainingPellets = collectibles.filter(
-    (collectible) => collectible.kind !== "fruit" && collectible.active
-  ).length;
+	const remainingPellets = collectibles.filter(
+		(collectible) => collectible.kind !== "fruit" && collectible.active,
+	).length;
 
-  return elroyStages.reduce(
-    (multiplier, stage) =>
-      remainingPellets <= stage.remainingPellets
-        ? Math.max(multiplier, stage.speedMultiplier)
-        : multiplier,
-    1
-  );
+	return elroyStages.reduce(
+		(multiplier, stage) =>
+			remainingPellets <= stage.remainingPellets
+				? Math.max(multiplier, stage.speedMultiplier)
+				: multiplier,
+		1,
+	);
 };
