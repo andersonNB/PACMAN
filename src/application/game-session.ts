@@ -810,7 +810,7 @@ const resolveEnemyRelease = (
 		enemyReleaseTimerMs,
 	};
 };
-console.log("Game session module loaded successfully.");
+console.log("Game session module loaded successfully");
 const countCollectedLevelItems = (
 	collectibles: GameState["collectibles"],
 ): number =>
